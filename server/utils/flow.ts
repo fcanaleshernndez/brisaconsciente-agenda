@@ -1,18 +1,10 @@
 // server/utils/flow.ts
 import crypto from 'node:crypto'
 
-const FLOW_API_URL = process.env.FLOW_API_URL || 'https://www.flow.cl/api'
-const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY || ''
-const FLOW_API_KEY = process.env.FLOW_API_KEY || ''
-
-export function sign(params: Record<string, string>): string {
-    // Forzamos el orden exacto que Flow espera (alfabético simple)
-    const keys = Object.keys(params).sort((a, b) => a.localeCompare(b)) // Ordenación alfabética estándar
+export function sign(params: Record<string, string>, secretKey: string): string {
+    const keys = Object.keys(params).sort()
     const toSign = keys.map(k => `${k}${params[k]}`).join('')
-    
-    console.log('NUEVO TO SIGN:', toSign) // Verifica si el orden cambió
-    
-    return crypto.createHmac('sha256', FLOW_SECRET_KEY).update(toSign).digest('hex')
+    return crypto.createHmac('sha256', secretKey).update(toSign).digest('hex')
 }
 
 export async function flowCreatePayment(input: {
@@ -23,7 +15,12 @@ export async function flowCreatePayment(input: {
     urlConfirmation: string
     urlReturn: string
 }) {
-    // Todos los valores como string desde el inicio para que la firma sea consistente
+    const FLOW_API_URL = (process.env.FLOW_API_URL || 'https://www.flow.cl/api').trim()
+    const FLOW_API_KEY = (process.env.FLOW_API_KEY || '').trim()
+    const FLOW_SECRET_KEY = (process.env.FLOW_SECRET_KEY || '').trim()
+
+    console.log('SECRET LEN:', FLOW_SECRET_KEY.length) // debe ser > 0
+
     const params: Record<string, string> = {
         apiKey: FLOW_API_KEY,
         subject: input.subject,
@@ -35,11 +32,8 @@ export async function flowCreatePayment(input: {
         urlReturn: input.urlReturn,
     }
 
-    console.log('=== FLOW PARAMS ===', JSON.stringify(params, null, 2))
-    console.log('=== TO SIGN ===', Object.keys(params).sort().map(k => `${k}${params[k]}`).join(''))
-
-    const s = sign(params)
-    const body = new URLSearchParams({ ...params, s })
+    const s = sign(params, FLOW_SECRET_KEY)
+    const body = new URLSearchParams({ ...params, s }).toString().replace(/\+/g, '%20')
 
     const res = await fetch(`${FLOW_API_URL}/payment/create`, {
         method: 'POST',

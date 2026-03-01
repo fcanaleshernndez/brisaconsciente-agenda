@@ -1,6 +1,6 @@
 // server/api/flow/confirm.post.ts
 import { useDb } from '../../utils/db'
-import { sign } from '~~/server/utils/flow'
+import { sign } from '../../utils/flow'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -8,14 +8,23 @@ export default defineEventHandler(async (event) => {
 
   if (!token) throw createError({ statusCode: 400, message: 'Token missing' })
 
-  // 1. Consultar estado en Flow (Seguridad: no confiar en el POST directo)
-  const flowStatus = await $fetch(`${process.env.FLOW_API_URL}/payment/getStatus`, {
-    params: {
-      apiKey: process.env.FLOW_API_KEY,
-      token,
-      s: sign({ apiKey: process.env.FLOW_API_KEY!, token })
-    }
-  }) as any
+  const FLOW_API_URL = (process.env.FLOW_API_URL || 'https://www.flow.cl/api').trim()
+  const FLOW_API_KEY = (process.env.FLOW_API_KEY || '').trim()
+  const FLOW_SECRET_KEY = (process.env.FLOW_SECRET_KEY || '').trim()
+
+  const statusParams: Record<string, string> = {
+    apiKey: FLOW_API_KEY,
+    token,
+  }
+  const s = sign(statusParams, FLOW_SECRET_KEY)
+  const statusBody = new URLSearchParams({ ...statusParams, s }).toString().replace(/\+/g, '%20')
+
+  const flowRes = await fetch(`${FLOW_API_URL}/payment/getStatus`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: statusBody
+  })
+  const flowStatus = await flowRes.json() as any
 
   const client = await useDb().connect()
 

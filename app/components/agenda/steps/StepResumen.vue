@@ -29,9 +29,9 @@ const handlePay = async () => {
         slot_ids: props.form.slots.map(s => s.id)
       }
     })
-    // Redirigir a Flow cuando esté integrado
-    // window.location.href = data.flow_url
-    alert('✅ Reserva creada. Aquí irá la URL de Flow: ' + data.flow_url)
+    if (data.success && data.flow_url) {
+      window.location.href = data.flow_url
+    }
   } catch (e) {
     error.value = 'Hubo un problema al procesar tu reserva. Intenta nuevamente.'
   } finally {

@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
       commerceOrder: order,
       email,
       urlConfirmation: process.env.FLOW_URL_CONFIRM!,
-      urlReturn: process.env.FLOW_URL_RETURN!,
+      urlReturn: process.env.FLOW_URL_RETURN+`?order=${bookingId}`,
     })
 
     // 5. Guardar datos de pago en tabla payments

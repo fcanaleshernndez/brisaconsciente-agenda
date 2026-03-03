@@ -19,8 +19,6 @@ export async function flowCreatePayment(input: {
     const FLOW_API_KEY = (process.env.FLOW_API_KEY || '').trim()
     const FLOW_SECRET_KEY = (process.env.FLOW_SECRET_KEY || '').trim()
 
-    console.log('SECRET LEN:', FLOW_SECRET_KEY.length) // debe ser > 0
-
     const params: Record<string, string> = {
         apiKey: FLOW_API_KEY,
         subject: input.subject,

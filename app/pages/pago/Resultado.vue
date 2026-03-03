@@ -7,19 +7,23 @@
       </div>
 
       <div v-else-if="booking?.status === 'confirmed'">
-        <div class="w-20 h-20 bg-pastelGreen/20 text-softGreen rounded-full flex items-center justify-center mx-auto mb-6">
+        <div
+          class="w-20 h-20 bg-pastelGreen/20 text-softGreen rounded-full flex items-center justify-center mx-auto mb-6">
           <i class="fas fa-check text-4xl"></i>
         </div>
         <h1 class="text-2xl font-bold text-gray-800 mb-2">¡Reserva Confirmada!</h1>
         <p class="text-gray-500 mb-6">
-          Hola <span class="text-teal-600 font-semibold">{{ booking.patient_name }}</span>, tu pago ha sido procesado con éxito.
+          Hola <span class="text-teal-600 font-semibold">{{ booking.patient_name }}</span>, tu pago ha sido procesado
+          con éxito.
         </p>
         <div class="bg-gray-50 rounded-2xl border border-gray-100 p-4 text-left mb-8 text-sm space-y-1">
-          <p class="text-gray-700"><strong class="text-gray-800">Profesional:</strong> {{ booking.professional_name }}</p>
+          <p class="text-gray-700"><strong class="text-gray-800">Profesional:</strong> {{ booking.professional_name }}
+          </p>
           <p class="text-gray-700"><strong class="text-gray-800">Sesiones:</strong> {{ booking.session_count }}</p>
           <p class="text-teal-600 font-bold text-base mt-2">{{ formatCLP(booking.total_amount_clp) }}</p>
         </div>
-        <NuxtLink to="/" class="block w-full bg-softGreen hover:bg-softGreen/70 text-white font-bold py-3 rounded-xl transition-all">
+        <NuxtLink to="/"
+          class="block w-full bg-softGreen hover:bg-softGreen/70 text-white font-bold py-3 rounded-xl transition-all">
           Volver al Inicio
         </NuxtLink>
       </div>
@@ -32,7 +36,8 @@
         <p class="text-gray-500 mb-8">
           No pudimos confirmar tu pago. Los horarios seleccionados han sido liberados.
         </p>
-        <NuxtLink to="/" class="block w-full border-2 border-gray-200 text-gray-500 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+        <NuxtLink to="/"
+          class="block w-full border-2 border-gray-200 text-gray-500 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
           Reintentar Reserva
         </NuxtLink>
       </div>
@@ -41,15 +46,53 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
 const route = useRoute()
-const token = route.query.token
+const token = route.query.token || null
+const orderId = route.query.order || null
+
+const booking = ref(null)
+const pending = ref(true)
+let attempts = 0
+const MAX_ATTEMPTS = 15
 
 const formatCLP = (n) => new Intl.NumberFormat('es-CL', {
   style: 'currency', currency: 'CLP', maximumFractionDigits: 0
 }).format(n)
 
-// Consultamos el estado de la reserva usando el token de Flow
-const { data: booking, pending } = await useFetch(`/api/bookings/status`, {
-  params: { token }
+async function checkStatus() {
+  if (attempts >= MAX_ATTEMPTS) {
+    pending.value = false
+    return
+  }
+
+  try {
+    const data = await $fetch('/api/bookings/status', {
+      params: { token, orderId }
+    })
+
+    console.log(`Intento ${attempts + 1}:`, data?.status)
+
+    if (data?.status === 'confirmed' || data?.status === 'failed') {
+      booking.value = data
+      pending.value = false
+    } else {
+      attempts++
+      setTimeout(checkStatus, 2000)
+    }
+  } catch (err) {
+    console.error('Error checkStatus:', err)
+    pending.value = false
+  }
+}
+
+onMounted(() => {
+  if (token || orderId) {
+    checkStatus()
+  } else {
+    console.warn('Sin token ni orderId en URL')
+    pending.value = false
+  }
 })
 </script>

@@ -16,13 +16,16 @@ export default defineEventHandler(async (event) => {
     apiKey: FLOW_API_KEY,
     token,
   }
-  const s = sign(statusParams, FLOW_SECRET_KEY)
-  const statusBody = new URLSearchParams({ ...statusParams, s }).toString().replace(/\+/g, '%20')
 
-  const flowRes = await fetch(`${FLOW_API_URL}/payment/getStatus`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: statusBody
+  const s = sign(statusParams, FLOW_SECRET_KEY)
+
+  const statusUrl = new URL(`${FLOW_API_URL}/payment/getStatus`)
+  statusUrl.searchParams.set('apiKey', FLOW_API_KEY)
+  statusUrl.searchParams.set('token', token)
+  statusUrl.searchParams.set('s', s)
+
+  const flowRes = await fetch(statusUrl.toString(), {
+    method: 'GET'
   })
   const flowStatus = await flowRes.json() as any
 

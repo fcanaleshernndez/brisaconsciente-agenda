@@ -7,6 +7,8 @@ import { flowCreatePayment } from '#imports'
 const bookingSchema = z.object({
   name: z.string().min(3),
   email: z.string().email(),
+  is_minor: z.boolean().optional(),
+  guardian_name: z.string().optional(),
   professional_id: z.number().int().positive(),
   package_type_id: z.number().int().positive(),
   slot_ids: z.array(z.number().int().positive()).min(1)
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Error parseando la información del proceso de agendamiento.' })
   }
 
-  const { name, email, professional_id, package_type_id, slot_ids } = parsed.data
+  const { name, email, is_minor, guardian_name, professional_id, package_type_id, slot_ids } = parsed.data
   const client = await useDb().connect()
 
   try {
@@ -52,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
     // 3. Crear booking + paciente + booking_slots + hold de slots
     const bookingId = await BookingsRepo.create(client, {
-      name, email, professional_id, package_type_id,
+      name, email, is_minor, guardian_name, professional_id, package_type_id,
       total_amount_clp,
       slot_ids
     })

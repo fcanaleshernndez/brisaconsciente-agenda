@@ -5,6 +5,8 @@ export const BookingsRepo = {
   async create(client: PoolClient, data: {
     name: string
     email: string
+    is_minor?: boolean
+    guardian_name?: string | null
     professional_id: number
     package_type_id: number
     total_amount_clp: number
@@ -12,23 +14,15 @@ export const BookingsRepo = {
   }) {
     // 1. Crear o reutilizar paciente
     const patientRes = await client.query(`
-      INSERT INTO patients (full_name, email)
-      VALUES ($1, $2)
-      ON CONFLICT DO NOTHING
+      INSERT INTO patients (full_name, email, is_minor, guardian_name)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (email) DO UPDATE SET
+        is_minor = EXCLUDED.is_minor,
+        guardian_name = EXCLUDED.guardian_name
       RETURNING id
-    `, [data.name, data.email])
+    `, [data.name, data.email, data.is_minor ?? false, data.guardian_name ?? null])
 
-    let patientId: number
-
-    if (patientRes.rowCount === 0) {
-      // Ya existía, buscarlo
-      const existing = await client.query(
-        `SELECT id FROM patients WHERE email = $1`, [data.email]
-      )
-      patientId = existing.rows[0].id
-    } else {
-      patientId = patientRes.rows[0].id
-    }
+    const patientId = patientRes.rows[0].id
 
     // 2. Crear la reserva
     const bookingRes = await client.query(`

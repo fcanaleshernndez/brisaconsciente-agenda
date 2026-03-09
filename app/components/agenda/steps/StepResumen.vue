@@ -24,6 +24,8 @@ const handlePay = async () => {
       body: {
         name: props.form.name,
         email: props.form.email,
+        is_minor: props.form.isMinor,
+        guardian_name: props.form.guardianName || null,
         professional_id: props.form.professional.id,
         package_type_id: props.form.package.package_id,
         slot_ids: props.form.slots.map(s => s.id)
@@ -54,6 +56,10 @@ const handlePay = async () => {
       <div class="flex justify-between items-center">
         <span class="text-gray-500">Paciente</span>
         <span class="font-semibold text-gray-800">{{ form.name }}</span>
+      </div>
+      <div v-if="form.isMinor" class="flex justify-between items-center">
+        <span class="text-gray-500">Responsable</span>
+        <span class="font-semibold text-gray-800">{{ form.guardianName }}</span>
       </div>
       <div class="flex justify-between items-center">
         <span class="text-gray-500">Correo</span>

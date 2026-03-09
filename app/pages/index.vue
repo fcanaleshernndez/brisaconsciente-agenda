@@ -12,6 +12,8 @@ const totalSteps = 5
 const form = reactive({
     name: '',
     email: '',
+    isMinor: false,
+    guardianName: '',
     professional: null,
     package: null,
     slots: []
@@ -75,7 +77,11 @@ const toggleSlot = (slot) => {
 
             <div class="p-8">
                 <!-- PASO 1: IDENTIFICACIÓN -->
-                <StepIdentificacion v-if="step === 0" v-model:name="form.name" v-model:email="form.email"
+                <StepIdentificacion v-if="step === 0" 
+                    v-model:name="form.name" 
+                    v-model:email="form.email"
+                    v-model:isMinor="form.isMinor"
+                    v-model:guardianName="form.guardianName"
                     @next="next" />
 
                 <!-- PASO 2: PROFESIONAL -->

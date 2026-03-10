@@ -3,13 +3,9 @@ import { query } from "../../utils/db";
 export default defineEventHandler(async (event) => {
   try {
     const sql = `
-      SELECT 
-        p.id, p.first_name, p.last_name, p.email, p.is_active,
-        p.appointment_duration_minutes,
-        s.id as specialty_id, s.name as specialty
-      FROM professionals p
-      LEFT JOIN specialties s ON p.specialty_id = s.id
-      ORDER BY p.first_name, p.last_name
+      SELECT id, full_name, email, phone, is_minor, guardian_name, created_at
+      FROM patients
+      ORDER BY full_name
     `;
     
     const { rows } = await query(sql);

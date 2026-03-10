@@ -18,7 +18,7 @@ onMounted(fetchProfessionals)
 </script>
 
 <template>
-  <div>
+  <div class="ml-5">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-gray-800">Profesionales</h1>
       <button class="bg-softGreen text-white px-4 py-2 rounded-xl hover:bg-softGreen/70 transition">
@@ -32,8 +32,8 @@ onMounted(fetchProfessionals)
       No hay profesionales registrados
     </div>
 
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
-      <table class="w-full">
+    <div v-else class="bg-white rounded-xl shadow-sm overflow-x-auto">
+      <table class="w-full min-w-[600px]">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>

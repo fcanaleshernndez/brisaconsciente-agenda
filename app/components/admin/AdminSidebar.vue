@@ -15,8 +15,11 @@ const props = defineProps({
   admin: Object
 })
 
+const emit = defineEmits(['close'])
+
 function setSection(key) {
   adminSection.value = key
+  emit('close')
 }
 
 function logout() {
@@ -27,11 +30,11 @@ function logout() {
 </script>
 
 <template>
-  <aside class="w-64 bg-white shadow-lg flex flex-col fixed h-full">
+  <aside class="w-full lg:w-64 bg-white shadow-lg flex flex-col h-full">
     <!-- Logo -->
     <div class="p-4 border-b border-gray-100">
       <div class="flex items-center gap-2">
-        <span class="font-bold text-gray-800">Admin</span>
+        <span class="font-bold text-gray-800"></span>
       </div>
     </div>
 

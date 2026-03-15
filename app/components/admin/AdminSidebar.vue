@@ -7,7 +7,6 @@ const menuItems = [
   { name: 'Reservas', key: 'bookings', icon: 'calendar' },
   { name: 'Pacientes', key: 'patients', icon: 'users' },
   { name: 'Profesionales', key: 'professionals', icon: 'user-md' },
-  { name: 'Especialidades', key: 'specialties', icon: 'folder' },
   { name: 'Horarios', key: 'schedules', icon: 'clock' },
 ]
 

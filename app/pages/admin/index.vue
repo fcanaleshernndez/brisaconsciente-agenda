@@ -2,6 +2,7 @@
 import DashboardContent from '~/components/admin/DashboardContent.vue'
 import ProfessionalsContent from '~/components/admin/ProfessionalsContent.vue'
 import PatientsContent from '~/components/admin/PatientsContent.vue'
+import SchedulesContent from '~/components/admin/SchedulesContent.vue'
 
 definePageMeta({
   layout: false
@@ -65,14 +66,7 @@ function toggleSidebar() {
       </div>
       <PatientsContent v-else-if="adminSection === 'patients'"/>
       <ProfessionalsContent v-else-if="adminSection === 'professionals'" />
-      <div v-else-if="adminSection === 'specialties'">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Especialidades</h1>
-        <p class="text-gray-500">Próximamente...</p>
-      </div>
-      <div v-else-if="adminSection === 'schedules'">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Horarios</h1>
-        <p class="text-gray-500">Próximamente...</p>
-      </div>
+      <SchedulesContent v-else-if="adminSection === 'schedules'" />
     </main>
   </div>
 </template>

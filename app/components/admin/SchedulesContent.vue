@@ -172,7 +172,7 @@ onMounted(fetchProfessionals)
           <div class="flex items-end mt-6 gap-2">
             <button 
               @click="openAddSlotsModal"
-              class="h-[42px] bg-pastelGreen hover:bg-softGreen/70 text-white px-4 py-2 rounded-lg transition"
+              class="h-[42px] bg-info hover:bg-info/70 text-white px-4 py-2 rounded-lg transition"
             >
               + Añadir Horarios
             </button>
@@ -409,7 +409,7 @@ onMounted(fetchProfessionals)
             </button>
             <button @click="createSlots"
               :disabled="creatingSlots || !selectedDate || timeSlots.length === 0"
-              class="flex-1 px-4 py-3 bg-softGreen text-white rounded-xl font-medium hover:bg-softGreen/70 transition disabled:opacity-50">
+              class="flex-1 px-4 py-3 bg-info text-white rounded-xl font-medium hover:bg-info/70 transition disabled:opacity-50">
               {{ creatingSlots ? 'Creando...' : 'Crear Horarios' }}
             </button>
           </div>

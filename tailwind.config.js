@@ -20,6 +20,11 @@ module.exports = {
         pastelBlue: "#60c3e7",
         softBlue: "#a5e3e9",
         baseGray: "#b3b3b3",
+        info: "#0dcaf0",
+        success: "#198754",
+        danger: "#dc3545",
+        secondary: "#6c757d",
+        dark: "#212529"
       },
     },
   },

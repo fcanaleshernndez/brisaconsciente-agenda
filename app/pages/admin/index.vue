@@ -3,6 +3,8 @@ import DashboardContent from '~/components/admin/DashboardContent.vue'
 import ProfessionalsContent from '~/components/admin/ProfessionalsContent.vue'
 import PatientsContent from '~/components/admin/PatientsContent.vue'
 import SchedulesContent from '~/components/admin/SchedulesContent.vue'
+import PackagesContent from '~/components/admin/PackagesContent.vue'
+import PricesContent from '~/components/admin/PricesContent.vue'
 
 definePageMeta({
   layout: false
@@ -67,6 +69,8 @@ function toggleSidebar() {
       <PatientsContent v-else-if="adminSection === 'patients'"/>
       <ProfessionalsContent v-else-if="adminSection === 'professionals'" />
       <SchedulesContent v-else-if="adminSection === 'schedules'" />
+      <PackagesContent v-else-if="adminSection === 'packages'" />
+      <PricesContent v-else-if="adminSection === 'prices'" />
     </main>
   </div>
 </template>

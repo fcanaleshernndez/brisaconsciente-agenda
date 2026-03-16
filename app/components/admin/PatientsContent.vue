@@ -1,12 +1,19 @@
 <script setup>
 const loading = ref(true)
 const patients = ref([])
+const pagination = ref({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0
+})
 
-async function fetchPatients() {
+async function fetchPatients(page = 1) {
   loading.value = true
   try {
-    const data = await $fetch('/api/admin/patients')
-    patients.value = data
+    const data = await $fetch(`/api/admin/patients?page=${page}&limit=10`)
+    patients.value = data.data
+    pagination.value = data.pagination
   } catch (e) {
     console.error(e)
   } finally {
@@ -14,7 +21,13 @@ async function fetchPatients() {
   }
 }
 
-onMounted(fetchPatients)
+function changePage(newPage) {
+  if (newPage >= 1 && newPage <= pagination.value.totalPages) {
+    fetchPatients(newPage)
+  }
+}
+
+onMounted(() => fetchPatients())
 </script>
 
 <template>
@@ -64,6 +77,32 @@ onMounted(fetchPatients)
           </tr>
         </tbody>
       </table>
+
+      <!-- Paginación -->
+      <div v-if="pagination.totalPages > 1" class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          Mostrando {{ (pagination.page - 1) * pagination.limit + 1 }} - {{ Math.min(pagination.page * pagination.limit, pagination.total) }} de {{ pagination.total }}
+        </div>
+        <div class="flex gap-2">
+          <button 
+            @click="changePage(pagination.page - 1)"
+            :disabled="pagination.page === 1"
+            class="px-3 py-1 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Anterior
+          </button>
+          <span class="px-3 py-1 text-sm text-gray-600">
+            {{ pagination.page }} / {{ pagination.totalPages }}
+          </span>
+          <button 
+            @click="changePage(pagination.page + 1)"
+            :disabled="pagination.page === pagination.totalPages"
+            class="px-3 py-1 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

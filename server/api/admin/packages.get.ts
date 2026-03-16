@@ -3,8 +3,9 @@ import { query } from "../../utils/db";
 export default defineEventHandler(async (event) => {
   try {
     const sql = `
-      SELECT id, name, session_count, created_at
+      SELECT id, name, session_count, is_deleted, created_at
       FROM package_types
+      WHERE is_deleted = FALSE
       ORDER BY session_count ASC
     `
     

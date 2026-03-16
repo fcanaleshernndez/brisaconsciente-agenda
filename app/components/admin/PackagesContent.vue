@@ -137,7 +137,7 @@ onMounted(fetchPackages)
                   Editar
                 </button>
                 <button @click="deletePackage(pkg)" class="text-red-500 hover:text-red-700 text-sm font-medium">
-                  Eliminar
+                  Desactivar
                 </button>
               </div>
             </td>
@@ -205,12 +205,12 @@ onMounted(fetchPackages)
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2">¿Eliminar paquete?</h3>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">¿Desactivar paquete?</h3>
             <div v-if="deleteError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p class="text-sm text-red-600">{{ deleteError }}</p>
             </div>
             <p v-else class="text-gray-600 mb-6">
-              ¿Estás seguro de eliminar el paquete "{{ packageToDelete?.name }}"? Esta acción no se puede deshacer.
+              ¿Estás seguro de desactivar el paquete "{{ packageToDelete?.name }}"? Ya no aparecerá en la lista de paquetes disponibles.
             </p>
             
             <div class="flex gap-3">
@@ -220,7 +220,7 @@ onMounted(fetchPackages)
               </button>
               <button @click="confirmDelete"
                 class="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition">
-                Sí, eliminar
+                Sí, desactivar
               </button>
             </div>
           </div>

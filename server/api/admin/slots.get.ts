@@ -2,7 +2,11 @@ import { query } from "../../utils/db";
 
 export default defineEventHandler(async (event) => {
   try {
-    const professionalId = getQuery(event).professional_id
+    const queryParams = getQuery(event)
+    const professionalId = queryParams.professional_id
+    const page = parseInt(String(queryParams.page)) || 1
+    const limit = parseInt(String(queryParams.limit)) || 10
+    const offset = (page - 1) * limit
 
     if (!professionalId) {
       throw createError({
@@ -10,6 +14,15 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Se requiere professional_id',
       })
     }
+
+    const countSql = `
+      SELECT COUNT(*) as total 
+      FROM availability_slots 
+      WHERE professional_id = $1
+    `
+    const { rows: countResult } = await query(countSql, [professionalId])
+    const total = parseInt(countResult[0].total)
+    const totalPages = Math.ceil(total / limit)
 
     const sql = `
       SELECT 
@@ -36,10 +49,20 @@ export default defineEventHandler(async (event) => {
       LEFT JOIN patients p ON b.patient_id = p.id
       WHERE s.professional_id = $1
       ORDER BY s.start_time DESC
+      LIMIT $2 OFFSET $3
     `
     
-    const { rows } = await query(sql, [professionalId])
-    return rows
+    const { rows } = await query(sql, [professionalId, limit, offset])
+    
+    return {
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    }
   } catch (error) {
     throw createError({
       statusCode: 500,

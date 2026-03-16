@@ -3,6 +3,7 @@ const loading = ref(true)
 const professionals = ref([])
 const selectedProfessional = ref(null)
 const availability = ref([])
+const pagination = ref({ page: 1, limit: 10, total: 0, totalPages: 0 })
 const loadingSlots = ref(false)
 const cleaningUp = ref(false)
 
@@ -10,6 +11,7 @@ const showModal = ref(false)
 const selectedSlot = ref(null)
 const showConfirmCleanup = ref(false)
 const showAddSlots = ref(false)
+const showConfirmReschedule = ref(false)
 const selectedDate = ref('')
 const timeSlots = ref([{ start: '09:00', end: '10:00' }])
 const creatingSlots = ref(false)
@@ -46,12 +48,13 @@ async function fetchProfessionals() {
   }
 }
 
-async function fetchAvailability() {
+async function fetchAvailability(page = 1) {
   if (!selectedProfessional.value) return
   loadingSlots.value = true
   try {
-    const data = await $fetch(`/api/admin/slots?professional_id=${selectedProfessional.value.id}`)
-    availability.value = data
+    const data = await $fetch(`/api/admin/slots?professional_id=${selectedProfessional.value.id}&page=${page}&limit=10`)
+    availability.value = data.data
+    pagination.value = data.pagination
   } catch (e) {
     console.error(e)
   } finally {
@@ -60,7 +63,13 @@ async function fetchAvailability() {
 }
 
 function onProfessionalChange() {
-  fetchAvailability()
+  fetchAvailability(1)
+}
+
+function changePage(newPage) {
+  if (newPage >= 1 && newPage <= pagination.value.totalPages) {
+    fetchAvailability(newPage)
+  }
 }
 
 function confirmCleanup() {
@@ -86,7 +95,28 @@ async function cleanupOldSlots() {
 
 function openPatientModal(slot) {
   selectedSlot.value = slot
+  showConfirmReschedule.value = false
   showModal.value = true
+}
+
+function openRescheduleConfirm() {
+  showConfirmReschedule.value = true
+}
+
+async function confirmReschedule() {
+  if (!selectedSlot.value) return
+  
+  try {
+    await $fetch(`/api/admin/slots/${selectedSlot.value.id}/status`, {
+      method: 'PUT',
+      body: { status: 'rescheduled' }
+    })
+    showModal.value = false
+    showConfirmReschedule.value = false
+    await fetchAvailability(pagination.value.page)
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 function openAddSlotsModal() {
@@ -227,9 +257,10 @@ onMounted(fetchProfessionals)
                 'bg-green-100 text-green-700': slot.status === 'available' && !isPast(slot),
                 'bg-red-100 text-red-700': slot.status === 'available' && isPast(slot),
                 'bg-amber-100 text-amber-700': slot.status === 'held',
-                'bg-red-100 text-red-700': slot.status === 'booked'
+                'bg-red-100 text-red-700': slot.status === 'booked',
+                'bg-blue-100 text-blue-700': slot.status === 'rescheduled'
               }" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : 'Ocupado' }}
+                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : 'Reagendado' }}
               </span>
             </td>
             <td class="px-6 py-4 text-gray-600">
@@ -251,6 +282,32 @@ onMounted(fetchProfessionals)
 
       <div v-else class="p-8 text-center text-gray-500">
         No hay horarios disponibles para este profesional
+      </div>
+
+      <!-- Paginación -->
+      <div v-if="pagination.totalPages > 1" class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          Mostrando {{ (pagination.page - 1) * pagination.limit + 1 }} - {{ Math.min(pagination.page * pagination.limit, pagination.total) }} de {{ pagination.total }}
+        </div>
+        <div class="flex gap-2">
+          <button 
+            @click="changePage(pagination.page - 1)"
+            :disabled="pagination.page === 1"
+            class="px-3 py-1 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Anterior
+          </button>
+          <span class="px-3 py-1 text-sm text-gray-600">
+            {{ pagination.page }} / {{ pagination.totalPages }}
+          </span>
+          <button 
+            @click="changePage(pagination.page + 1)"
+            :disabled="pagination.page === pagination.totalPages"
+            class="px-3 py-1 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
     </div>
 
@@ -302,6 +359,32 @@ onMounted(fetchProfessionals)
               <div v-if="selectedSlot.paid_at">
                 <p class="text-xs text-gray-500 uppercase">Pagado</p>
                 <p class="font-medium text-green-600">{{ formatDateTime(selectedSlot.paid_at) }}</p>
+              </div>
+            </div>
+
+            <!-- Botón Reagendar -->
+            <div v-if="selectedSlot.status === 'booked'" class="mt-5 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p class="text-sm text-amber-700 mb-2">¿El paciente no pudo asistir y necesita reagendar?</p>
+              <button 
+                v-if="!showConfirmReschedule"
+                @click="openRescheduleConfirm"
+                class="text-sm bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg"
+              >
+                Marcar como reagendado
+              </button>
+              <div v-else class="flex gap-2">
+                <button 
+                  @click="confirmReschedule"
+                  class="flex-1 text-sm bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg"
+                >
+                  Confirmar
+                </button>
+                <button 
+                  @click="showConfirmReschedule = false"
+                  class="flex-1 text-sm border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </div>

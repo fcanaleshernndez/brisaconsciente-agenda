@@ -12,18 +12,18 @@ export default defineEventHandler(async (event) => {
     }
 
     const checkPrices = await query(`
-      SELECT COUNT(*) as count FROM professional_prices WHERE package_type_id = $1
+      SELECT COUNT(*) as count FROM professional_prices WHERE package_type_id = $1 AND is_active = TRUE
     `, [id])
 
     if (parseInt(checkPrices.rows[0].count) > 0) {
       throw createError({
         statusCode: 409,
-        statusMessage: 'No se puede eliminar el paquete porque hay profesionales con precios asociados',
+        statusMessage: 'No se puede desactivar el paquete porque hay precios activos asociados',
       })
     }
 
     const { rows } = await query(`
-      DELETE FROM package_types WHERE id = $1 RETURNING id
+      UPDATE package_types SET is_deleted = TRUE WHERE id = $1 RETURNING id
     `, [id])
 
     if (rows.length === 0) {

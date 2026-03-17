@@ -5,6 +5,7 @@ import PatientsContent from '~/components/admin/PatientsContent.vue'
 import SchedulesContent from '~/components/admin/SchedulesContent.vue'
 import PackagesContent from '~/components/admin/PackagesContent.vue'
 import PricesContent from '~/components/admin/PricesContent.vue'
+import SpecialtiesContent from '~/components/admin/SpecialtiesContent.vue'
 
 definePageMeta({
   layout: false
@@ -67,6 +68,7 @@ function toggleSidebar() {
         <p class="text-gray-500">Próximamente...</p>
       </div>
       <PatientsContent v-else-if="adminSection === 'patients'"/>
+      <SpecialtiesContent v-else-if="adminSection === 'specialties'" />
       <ProfessionalsContent v-else-if="adminSection === 'professionals'" />
       <SchedulesContent v-else-if="adminSection === 'schedules'" />
       <PackagesContent v-else-if="adminSection === 'packages'" />

@@ -176,6 +176,25 @@ function isPast(slot) {
   return slot.status === 'available' && new Date(slot.start_time) < new Date()
 }
 
+async function toggleSlotStatus(slot) {
+  const newStatus = slot.status === 'canceled' ? 'available' : 'canceled'
+  
+  if (newStatus === 'canceled' && slot.patient_name) {
+    alert('No puedes cancelar un horario que ya tiene un paciente reservado')
+    return
+  }
+  
+  try {
+    await $fetch(`/api/admin/slots/${slot.id}/status`, {
+      method: 'PUT',
+      body: { status: newStatus }
+    })
+    await fetchAvailability(pagination.value.page)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onMounted(fetchProfessionals)
 </script>
 
@@ -199,17 +218,17 @@ onMounted(fetchProfessionals)
               </option>
             </select>
           </div>
-          <div class="flex items-end mt-6 gap-2">
+          <div class="flex flex-col sm:flex-row items-end gap-2 w-full sm:w-auto">
             <button 
               @click="openAddSlotsModal"
-              class="h-[42px] bg-info hover:bg-info/70 text-white px-4 py-2 rounded-lg transition"
+              class="h-[42px] bg-info hover:bg-info/70 text-white px-4 py-2 rounded-lg transition whitespace-nowrap w-full sm:w-auto"
             >
               + Añadir Horarios
             </button>
             <button 
               @click="confirmCleanup"
               :disabled="cleaningUp"
-              class="h-[42px] bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
+              class="h-[42px] bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50 whitespace-nowrap w-full sm:w-auto"
             >
               {{ cleaningUp ? 'Limpiando...' : 'Limpiar horarios pasados' }}
             </button>
@@ -243,13 +262,16 @@ onMounted(fetchProfessionals)
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          <tr v-for="slot in availability" :key="slot.id" class="hover:bg-gray-50" :class="{'bg-red-50': isPast(slot)}">
+          <tr v-for="slot in availability" :key="slot.id" class="hover:bg-gray-50" :class="{
+            'bg-red-50': isPast(slot),
+            'bg-gray-50': slot.status === 'canceled'
+          }">
             <td class="px-6 py-4">
-              <span :class="isPast(slot) ? 'text-red-600' : 'text-gray-800'">
+              <span :class="isPast(slot) ? 'text-red-600' : (slot.status === 'canceled' ? 'text-gray-400' : 'text-gray-800')">
                 {{ formatDate(slot.start_time) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-600">
+            <td class="px-6 py-4" :class="slot.status === 'canceled' ? 'text-gray-400' : 'text-gray-600'">
               {{ formatTime(slot.start_time) }} - {{ formatTime(slot.end_time) }}
             </td>
             <td class="px-6 py-4">
@@ -258,23 +280,40 @@ onMounted(fetchProfessionals)
                 'bg-red-100 text-red-700': slot.status === 'available' && isPast(slot),
                 'bg-amber-100 text-amber-700': slot.status === 'held',
                 'bg-red-100 text-red-700': slot.status === 'booked',
-                'bg-blue-100 text-blue-700': slot.status === 'rescheduled'
+                'bg-blue-100 text-blue-700': slot.status === 'rescheduled',
+                'bg-gray-100 text-gray-600': slot.status === 'canceled'
               }" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : 'Reagendado' }}
+                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : slot.status === 'rescheduled' ? 'Reagendado' : 'Cancelado' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-600">
+            <td class="px-6 py-4" :class="slot.status === 'canceled' ? 'text-gray-400' : 'text-gray-600'">
               {{ slot.patient_name || '-' }}
             </td>
             <td class="px-6 py-4">
-              <button 
-                v-if="slot.patient_name"
-                @click="openPatientModal(slot)"
-                class="text-teal-600 hover:text-teal-800 text-sm font-medium"
-              >
-                Ver paciente
-              </button>
-              <span v-else class="text-gray-400 text-sm">-</span>
+              <div class="flex flex-col gap-1">
+                <button 
+                  v-if="slot.status === 'available' && !slot.patient_name"
+                  @click="toggleSlotStatus(slot)"
+                  class="text-red-600 hover:text-red-800 text-sm font-medium text-left"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  v-else-if="slot.status === 'canceled'"
+                  @click="toggleSlotStatus(slot)"
+                  class="text-green-600 hover:text-green-800 text-sm font-medium text-left"
+                >
+                  Activar
+                </button>
+                <button 
+                  v-if="slot.patient_name"
+                  @click="openPatientModal(slot)"
+                  class="text-teal-600 hover:text-teal-800 text-sm font-medium text-left"
+                >
+                  Ver paciente
+                </button>
+                <span v-if="!slot.patient_name && slot.status !== 'canceled'" class="text-gray-400 text-sm">-</span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -314,18 +353,18 @@ onMounted(fetchProfessionals)
     <!-- Modal -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showModal = false">
-        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl" @click.stop>
+        <div class="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl" @click.stop>
           <h3 class="text-xl font-bold text-gray-800 mb-4">Información del Paciente</h3>
           
           <div v-if="selectedSlot" class="space-y-3">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p class="text-xs text-gray-500 uppercase">Nombre</p>
                 <p class="font-medium text-gray-800">{{ selectedSlot.patient_name }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-500 uppercase">Email</p>
-                <p class="font-medium text-gray-800">{{ selectedSlot.patient_email }}</p>
+                <p class="font-medium text-gray-800 break-all">{{ selectedSlot.patient_email }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-500 uppercase">Teléfono</p>
@@ -335,7 +374,7 @@ onMounted(fetchProfessionals)
                 <p class="text-xs text-gray-500 uppercase">Menor de edad</p>
                 <p class="font-medium text-gray-800">{{ selectedSlot.is_minor ? 'Sí' : 'No' }}</p>
               </div>
-              <div v-if="selectedSlot.guardian_name" class="col-span-2">
+              <div v-if="selectedSlot.guardian_name" class="sm:col-span-2">
                 <p class="text-xs text-gray-500 uppercase">Responsable</p>
                 <p class="font-medium text-gray-800">{{ selectedSlot.guardian_name }}</p>
               </div>
@@ -343,7 +382,7 @@ onMounted(fetchProfessionals)
             
             <hr class="my-4" />
             
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p class="text-xs text-gray-500 uppercase">Estado Reserva</p>
                 <p class="font-medium text-gray-800">{{ selectedSlot.booking_status }}</p>

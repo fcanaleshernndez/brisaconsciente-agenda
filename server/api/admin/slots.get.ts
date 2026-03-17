@@ -15,12 +15,16 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const twoMonthsAgo = new Date()
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
+    const twoMonthsAgoStr = twoMonthsAgo.toISOString()
+
     const countSql = `
       SELECT COUNT(*) as total 
       FROM availability_slots 
-      WHERE professional_id = $1
+      WHERE professional_id = $1 AND start_time >= $2
     `
-    const { rows: countResult } = await query(countSql, [professionalId])
+    const { rows: countResult } = await query(countSql, [professionalId, twoMonthsAgoStr])
     const total = parseInt(countResult[0].total)
     const totalPages = Math.ceil(total / limit)
 
@@ -47,12 +51,12 @@ export default defineEventHandler(async (event) => {
       LEFT JOIN booking_slots bs ON s.id = bs.slot_id
       LEFT JOIN bookings b ON bs.booking_id = b.id
       LEFT JOIN patients p ON b.patient_id = p.id
-      WHERE s.professional_id = $1
+      WHERE s.professional_id = $1 AND s.start_time >= $2
       ORDER BY s.start_time DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $3 OFFSET $4
     `
     
-    const { rows } = await query(sql, [professionalId, limit, offset])
+    const { rows } = await query(sql, [professionalId, twoMonthsAgoStr, limit, offset])
     
     return {
       data: rows,

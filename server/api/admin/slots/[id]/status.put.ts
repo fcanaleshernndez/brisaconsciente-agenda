@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const newStatus = body?.status
 
-    if (!newStatus || !['available', 'held', 'booked', 'rescheduled'].includes(newStatus)) {
+    if (!newStatus || !['available', 'held', 'booked', 'rescheduled', 'canceled'].includes(newStatus)) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Estado inválido',

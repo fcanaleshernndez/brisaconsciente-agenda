@@ -8,7 +8,7 @@ const bookingSchema = z.object({
   name: z.string().min(3),
   email: z.string().email(),
   is_minor: z.boolean().optional(),
-  guardian_name: z.string().optional(),
+  guardian_name: z.string().nullable().optional(),
   professional_id: z.number().int().positive(),
   package_type_id: z.number().int().positive(),
   slot_ids: z.array(z.number().int().positive()).min(1)

@@ -403,7 +403,7 @@ onMounted(fetchProfessionals)
             </div>
 
             <!-- Botón Reagendar -->
-            <div v-if="selectedSlot.status === 'booked'" class="mt-5 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div v-if="selectedSlot.status === 'booked' || selectedSlot.status === 'manually_booked'" class="mt-5 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p class="text-sm text-amber-700 mb-2">¿El paciente no pudo asistir y necesita reagendar?</p>
               <button 
                 v-if="!showConfirmReschedule"

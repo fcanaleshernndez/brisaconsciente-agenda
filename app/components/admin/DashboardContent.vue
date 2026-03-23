@@ -66,7 +66,7 @@ onMounted(fetchStats)
 
     <div v-else class="space-y-6">
       <!-- Card Principal de Ingresos -->
-      <div class="bg-gradient-to-r from-softGreen to-pastelGreen rounded-2xl shadow-lg p-6 text-white">
+      <div class="bg-gradient-to-r from-softGreen to-pastelGreen/60 rounded-2xl shadow-lg p-6 text-white">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
             <p class="text-white-100 text-sm font-medium mb-1">Ingresos en el período</p>

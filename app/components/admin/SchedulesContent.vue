@@ -281,9 +281,10 @@ onMounted(fetchProfessionals)
                 'bg-amber-100 text-amber-700': slot.status === 'held',
                 'bg-red-100 text-red-700': slot.status === 'booked',
                 'bg-blue-100 text-blue-700': slot.status === 'rescheduled',
-                'bg-gray-100 text-gray-600': slot.status === 'canceled'
+                'bg-purple-100 text-purple-600': slot.status === 'manually_booked',
+                'bg-gray-100 text-gray-600': slot.status === 'canceled',
               }" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : slot.status === 'rescheduled' ? 'Reagendado' : 'Cancelado' }}
+                {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : slot.status === 'rescheduled' ? 'Reagendado' : slot.status === 'manually_booked' ? 'Manualmente Reservado' : 'Cancelado' }}
               </span>
             </td>
             <td class="px-6 py-4" :class="slot.status === 'canceled' ? 'text-gray-400' : 'text-gray-600'">

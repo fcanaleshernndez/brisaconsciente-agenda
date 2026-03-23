@@ -72,7 +72,7 @@ const isDisabled = (slot) => !isSelected(slot) && isComplete.value
         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 capitalize sticky top-0 bg-white py-1">
           {{ dateKey }}
         </p>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 gap-2">
           <button
             v-for="slot in daySlots" :key="slot.id"
             @click="!isDisabled(slot) && emit('toggle', slot)"
@@ -85,7 +85,7 @@ const isDisabled = (slot) => !isSelected(slot) && isComplete.value
                   : 'bg-white text-gray-700 border-gray-200 hover:border-softGreen hover:bg-teal-50'
             ]"
           >
-            {{ formatTime(slot.start_time) }}
+            {{ formatTime(slot.start_time) }} - {{ formatTime(slot.end_time) }}
           </button>
         </div>
       </div>

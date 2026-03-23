@@ -6,6 +6,7 @@ import SchedulesContent from '~/components/admin/SchedulesContent.vue'
 import PackagesContent from '~/components/admin/PackagesContent.vue'
 import PricesContent from '~/components/admin/PricesContent.vue'
 import SpecialtiesContent from '~/components/admin/SpecialtiesContent.vue'
+import ReservationsContent from '~/components/admin/ReservationsContent.vue'
 
 definePageMeta({
   layout: false
@@ -63,10 +64,7 @@ function toggleSidebar() {
        
     <main class="w-full lg:pl-64 p-4 lg:pr-8 pt-16 lg:pt-8">
       <DashboardContent v-if="adminSection === 'dashboard'" />
-      <div v-else-if="adminSection === 'bookings'">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Reservas</h1>
-        <p class="text-gray-500">Próximamente...</p>
-      </div>
+      <ReservationsContent v-else-if="adminSection === 'bookings'" />
       <PatientsContent v-else-if="adminSection === 'patients'"/>
       <SpecialtiesContent v-else-if="adminSection === 'specialties'" />
       <ProfessionalsContent v-else-if="adminSection === 'professionals'" />

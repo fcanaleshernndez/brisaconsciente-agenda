@@ -48,7 +48,7 @@ const formatCLP = (n) => new Intl.NumberFormat('es-CL', {
           <div class="flex-1">
             <p class="font-bold text-gray-800 text-lg">{{ pkg.package_name }}</p>
             <p class="text-sm text-gray-500 mt-0.5">
-              {{ pkg.sessions }} {{ pkg.sessions === 1 ? 'sesión' : 'sesiones' }} · 60 min · Online
+              {{ pkg.sessions }} {{ pkg.sessions === 1 ? 'sesión' : 'sesiones' }}
             </p>
             <div class="mt-2 flex items-baseline gap-2">
               <span class="text-2xl font-bold text-teal-600">{{ formatCLP(pkg.price) }}</span>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sendBookingConfirmationEmail } from "../../utils/email";
+import { sendBookingConfirmationEmail, sendProfessionalNotificationEmail } from "../../utils/email";
 
 const manualBookingSchema = z.object({
   patient_id: z.number().int().positive("Paciente requerido"),
@@ -97,25 +97,38 @@ export default defineEventHandler(async (event) => {
           p.full_name as patient_name,
           p.email as patient_email,
           prof.first_name || ' ' || prof.last_name as professional_name,
+          prof.email as professional_email,
           s.name as specialty_name,
+          pt.name as package_name,
           b.total_amount_clp
         FROM bookings b
         JOIN patients p ON p.id = b.patient_id
         JOIN professionals prof ON prof.id = b.professional_id
         JOIN specialties s ON s.id = prof.specialty_id
+        JOIN package_types pt ON pt.id = b.package_type_id
         WHERE b.id = $1
       `, [bookingId])
 
       if (emailData.rows[0] && slotsForEmail.length > 0) {
-        const patient = emailData.rows[0]
+        const data = emailData.rows[0]
 
-        sendBookingConfirmationEmail(patient.patient_email, {
-          patientName: patient.patient_name,
-          professionalName: patient.professional_name,
-          specialty: patient.specialty_name,
+        sendBookingConfirmationEmail(data.patient_email, {
+          patientName: data.patient_name,
+          professionalName: data.professional_name,
+          specialty: data.specialty_name,
           sessions: slotsForEmail,
-          amount: patient.total_amount_clp,
+          amount: data.total_amount_clp,
           bookingId: bookingId,
+        })
+
+        sendProfessionalNotificationEmail(data.professional_email, {
+          professionalName: data.professional_name,
+          patientName: data.patient_name,
+          specialty: data.specialty_name,
+          sessions: slotsForEmail,
+          amount: data.total_amount_clp,
+          bookingId: bookingId,
+          packageName: data.package_name,
         })
       }
 

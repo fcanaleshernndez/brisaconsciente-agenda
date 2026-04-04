@@ -5,6 +5,7 @@ const adminSection = useAdminSection()
 const menuItems = [
   { name: 'Dashboard', key: 'dashboard', icon: 'home' },
   { name: 'Reservas', key: 'bookings', icon: 'calendar' },
+  { name: 'Reagendados', key: 'reschedules', icon: 'refresh' },
   { name: 'Pacientes', key: 'patients', icon: 'users' },
   { name: 'Especialidades', key: 'specialties', icon: 'specialtie'},
   { name: 'Profesionales', key: 'professionals', icon: 'user-md' },
@@ -72,6 +73,9 @@ function logout() {
         </svg>
         <svg v-else-if="item.icon === 'price'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <svg v-else-if="item.icon === 'refresh'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
         {{ item.name }}
       </button>

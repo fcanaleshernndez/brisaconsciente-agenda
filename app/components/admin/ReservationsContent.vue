@@ -1,4 +1,6 @@
 <script setup>
+const emit = defineEmits(['booking-created'])
+
 const loading = ref(true)
 const reservations = ref([])
 const patients = ref([])
@@ -13,6 +15,11 @@ const success = ref('')
 
 const showConfirmPaid = ref(false)
 const reservationToToggle = ref(null)
+const showHelpModal = ref(false)
+
+const pendingReschedules = ref([])
+const isReschedule = ref(false)
+const selectedReschedule = ref(null)
 
 const form = ref({
   patient_id: null,
@@ -20,6 +27,7 @@ const form = ref({
   package_type_id: null,
   slot_ids: [],
   paid: true,
+  reschedule_request_id: null,
 })
 
 const availableSlots = ref([])
@@ -99,10 +107,41 @@ function openAddModal() {
     package_type_id: null,
     slot_ids: [],
     paid: true,
+    reschedule_request_id: null,
   }
+  isReschedule.value = false
+  selectedReschedule.value = null
   availableSlots.value = []
   packages.value = []
+  fetchPendingReschedules()
   showModal.value = true
+}
+
+async function fetchPendingReschedules() {
+  try {
+    const data = await $fetch('/api/admin/reschedule-requests')
+    pendingReschedules.value = data
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function onIsRescheduleChange() {
+  if (!isReschedule.value) {
+    selectedReschedule.value = null
+    form.value.patient_id = null
+    form.value.professional_id = null
+  } else if (pendingReschedules.value.length > 0) {
+    selectReschedule(pendingReschedules.value[0])
+  }
+}
+
+function selectReschedule(r) {
+  selectedReschedule.value = r
+  form.value.reschedule_request_id = r.id
+  form.value.patient_id = r.patient_id
+  form.value.professional_id = r.professional_id
+  onProfessionalChange()
 }
 
 function onProfessionalChange() {
@@ -142,16 +181,27 @@ async function createManualBooking() {
     return
   }
 
+  if (isReschedule.value && !form.value.reschedule_request_id) {
+    error.value = 'Debes seleccionar una solicitud de reagendamiento'
+    return
+  }
+
   saving.value = true
   error.value = ''
   success.value = ''
 
+  const body = { ...form.value }
+  if (!isReschedule.value) {
+    delete body.reschedule_request_id
+  }
+
   try {
     await $fetch('/api/admin/bookings', {
       method: 'POST',
-      body: form.value,
+      body: body,
     })
-    success.value = 'Reserva manual creada exitosamente'
+    emit('booking-created')
+    success.value = isReschedule.value ? 'Reserva creada y vinculada al reagendamiento' : 'Reserva manual creada exitosamente'
     setTimeout(() => {
       showModal.value = false
       fetchReservations()
@@ -249,7 +299,14 @@ onMounted(async () => {
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Profesional</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horarios</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Horarios
+              <button @click="showHelpModal = true" class="ml-1 text-teal-600 hover:text-teal-800" title="Ver ayuda">
+                <svg class="w-4 h-4 inline mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            </th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagado</th>
@@ -267,8 +324,18 @@ onMounted(async () => {
               <div class="text-xs text-gray-500">{{ r.specialty }}</div>
             </td>
             <td class="px-4 py-3">
-              <div v-for="(slot, idx) in r.slots" :key="idx" class="text-xs text-gray-600">
-                {{ formatDate(slot.start) }} {{ formatTime(slot.start) }}
+              <div v-for="(slot, idx) in r.slots" :key="idx" class="flex items-center gap-1 text-xs mb-1">
+                <span :class="{
+                  'bg-green-100 text-green-700': slot.status === 'booked',
+                  'bg-purple-100 text-purple-700': slot.status === 'manually_booked',
+                  'bg-amber-100 text-amber-700': slot.status === 'held',
+                  'bg-blue-100 text-blue-700': slot.status === 'rescheduled',
+                  'bg-gray-100 text-gray-500': slot.status === 'available',
+                  'bg-red-100 text-red-700': slot.status === 'canceled',
+                }" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
+                  {{ slot.status === 'booked' ? 'OK' : slot.status === 'manually_booked' ? 'MAN' : slot.status === 'rescheduled' ? 'REA' : slot.status === 'held' ? 'RES' : slot.status === 'available' ? 'DIS' : 'CAN' }}
+                </span>
+                <span class="text-gray-600">{{ formatDate(slot.start) }} {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}</span>
               </div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-600">{{ formatPrice(r.total_amount_clp) }}</td>
@@ -339,10 +406,50 @@ onMounted(async () => {
           </div>
           
           <div class="space-y-4">
+            <div v-if="pendingReschedules.length > 0" class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div class="flex items-center gap-2 mb-3">
+                <input 
+                  v-model="isReschedule"
+                  @change="onIsRescheduleChange"
+                  type="checkbox"
+                  id="isReschedule"
+                  class="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                />
+                <label for="isReschedule" class="text-sm font-medium text-amber-800">
+                  Marcar como reagendamiento
+                </label>
+              </div>
+              
+              <div v-if="isReschedule" class="space-y-2">
+                <label class="block text-xs font-medium text-amber-700">Seleccionar solicitud pendiente:</label>
+                <select 
+                  v-model="selectedReschedule"
+                  @change="selectReschedule(selectedReschedule)"
+                  class="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                >
+                  <option :value="null" disabled>Selecciona...</option>
+                  <option v-for="r in pendingReschedules" :key="r.id" :value="r">
+                    {{ r.patient_name }} | {{ r.professional_name }} | {{ formatDate(r.original_date) }}
+                  </option>
+                </select>
+                
+                <div v-if="selectedReschedule" class="text-xs text-amber-700 bg-amber-100 p-2 rounded">
+                  <strong>Esta reserva se vinculará al reagendamiento:</strong><br/>
+                  Paciente: {{ selectedReschedule.patient_name }}<br/>
+                  Profesional: {{ selectedReschedule.professional_name }}<br/>
+                  Fecha original: {{ formatDateTime(selectedReschedule.original_date) }}
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Paciente</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Paciente {{ isReschedule ? '(bloqueado por reagendamiento)' : '' }}
+              </label>
               <select 
                 v-model="form.patient_id"
+                :disabled="isReschedule"
+                :class="isReschedule ? 'bg-gray-100 cursor-not-allowed' : ''"
                 class="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-teal-500 outline-none"
               >
                 <option :value="null" disabled>Selecciona un paciente</option>
@@ -353,9 +460,13 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Profesional</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Profesional {{ isReschedule ? '(bloqueado por reagendamiento)' : '' }}
+              </label>
               <select 
                 v-model="form.professional_id"
+                :disabled="isReschedule"
+                :class="isReschedule ? 'bg-gray-100 cursor-not-allowed' : ''"
                 @change="onProfessionalChange"
                 class="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-teal-500 outline-none"
               >
@@ -469,6 +580,53 @@ onMounted(async () => {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal Ayuda Estados -->
+    <Teleport to="body">
+      <div v-if="showHelpModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showHelpModal = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" @click.stop>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Estados de Horarios</h3>
+            <button @click="showHelpModal = false" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium shrink-0">OK</span>
+              <p class="text-sm text-gray-600"><strong>OK:</strong> Reservado exitosamente mediante pago online (Flow)</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs font-medium shrink-0">MAN</span>
+              <p class="text-sm text-gray-600"><strong>Manualmente Reservado:</strong> Reservado manualmente por el administrador</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium shrink-0">REA</span>
+              <p class="text-sm text-gray-600"><strong>Reagendado:</strong> Horario marcado para reagendamiento. El paciente fue notificado.</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium shrink-0">RES</span>
+              <p class="text-sm text-gray-600"><strong>Reservado:</strong> Reservado temporalmente, esperando confirmación de pago</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-medium shrink-0">DIS</span>
+              <p class="text-sm text-gray-600"><strong>Disponible:</strong> Horario disponible para reserva</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium shrink-0">CAN</span>
+              <p class="text-sm text-gray-600"><strong>Cancelado:</strong> Horario cancelado</p>
+            </div>
+          </div>
+
+          <button @click="showHelpModal = false" class="mt-6 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-xl transition">
+            Entendido
+          </button>
         </div>
       </div>
     </Teleport>

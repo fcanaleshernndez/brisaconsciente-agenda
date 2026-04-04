@@ -82,3 +82,28 @@ export async function sendProfessionalNotificationEmail(professionalEmail: strin
     return { success: false, error }
   }
 }
+
+export async function sendRescheduleNotificationEmail(patientEmail: string, data: {
+  patientName: string
+  professionalName: string
+  date: string
+  time: string
+  endTime: string
+}) {
+  const { rescheduleNotificationTemplate } = await import('./email-templates/reschedule-notification')
+
+  const html = rescheduleNotificationTemplate(data)
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: patientEmail,
+      subject: `Tu cita necesita ser reagendada - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending reschedule notification email:', error)
+    return { success: false, error }
+  }
+}

@@ -1,6 +1,89 @@
 // server/api/flow/confirm.post.ts
 import { useDb } from '../../utils/db'
 import { sign } from '../../utils/flow'
+import { resend, EMAIL_CONFIG } from '../../utils/email'
+import { bookingConfirmationTemplate } from '../../utils/email-templates/booking-confirmation'
+
+async function getBookingEmailDetails(client: any, bookingId: number) {
+  const result = await client.query(`
+    SELECT 
+      b.id as booking_id,
+      b.total_amount_clp,
+      p.full_name as patient_name,
+      p.email as patient_email,
+      prof.first_name || ' ' || prof.last_name as professional_name,
+      s.name as specialty_name,
+      pt.name as package_name,
+      pt.session_count
+    FROM bookings b
+    JOIN patients p ON p.id = b.patient_id
+    JOIN professionals prof ON prof.id = b.professional_id
+    JOIN specialties s ON s.id = prof.specialty_id
+    JOIN package_types pt ON pt.id = b.package_type_id
+    WHERE b.id = $1
+  `, [bookingId])
+  return result.rows[0] || null
+}
+
+async function getBookingSlots(client: any, bookingId: number) {
+  const result = await client.query(`
+    SELECT 
+      DATE(start_time) as slot_date,
+      TO_CHAR(start_time, 'HH24:MI') as start_time,
+      TO_CHAR(end_time, 'HH24:MI') as end_time
+    FROM availability_slots
+    WHERE id IN (SELECT slot_id FROM booking_slots WHERE booking_id = $1)
+    ORDER BY start_time
+  `, [bookingId])
+  return result.rows
+}
+
+function formatDate(dateStr: any) {
+  let date
+  if (typeof dateStr === 'string') {
+    date = new Date(dateStr + 'T00:00:00')
+  } else if (dateStr instanceof Date) {
+    date = dateStr
+  } else {
+    date = new Date(dateStr)
+  }
+  return date.toLocaleDateString('es-CL', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+}
+
+async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {
+  if (!bookingDetails?.patient_email || slots.length === 0) return
+  
+  const sessions = slots.map(slot => ({
+    date: formatDate(slot.slot_date),
+    startTime: slot.start_time,
+    endTime: slot.end_time
+  }))
+  
+  const html = bookingConfirmationTemplate({
+    patientName: bookingDetails.patient_name,
+    professionalName: bookingDetails.professional_name,
+    specialty: bookingDetails.specialty_name,
+    sessions: sessions,
+    amount: bookingDetails.total_amount_clp,
+    bookingId: bookingDetails.booking_id,
+  })
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: bookingDetails.patient_email,
+      subject: `Reserva Confirmada - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+  } catch (emailError) {
+    console.error('Error sending confirmation email:', emailError)
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -34,7 +117,6 @@ export default defineEventHandler(async (event) => {
   try {
     await client.query('BEGIN')
 
-    // Buscar el pago y la reserva asociada
     const paymentRes = await client.query(
       'SELECT booking_id FROM payments WHERE flow_token = $1',
       [token]
@@ -43,8 +125,7 @@ export default defineEventHandler(async (event) => {
     if (paymentRes.rowCount === 0) throw new Error('Payment not found')
     const bookingId = paymentRes.rows[0].booking_id
 
-    if (flowStatus.status === 2) { // Status 2 = Pagado en Flow
-      // A. ÉXITO: Confirmar reserva y slots
+    if (flowStatus.status === 2) {
       await client.query(
         "UPDATE bookings SET status = 'confirmed', paid_at = NOW() WHERE id = $1",
         [bookingId]
@@ -53,15 +134,20 @@ export default defineEventHandler(async (event) => {
         "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE flow_token = $1",
         [token]
       )
-      // Marcar slots como 'booked' definitivamente
       await client.query(`
         UPDATE availability_slots 
         SET status = 'booked', held_until = NULL
         WHERE id IN (SELECT slot_id FROM booking_slots WHERE booking_id = $1)
       `, [bookingId])
 
+      const bookingDetails = await getBookingEmailDetails(client, bookingId)
+      const slots = await getBookingSlots(client, bookingId)
+      
+      if (bookingDetails && slots.length > 0) {
+        await sendConfirmationEmail(bookingDetails, slots)
+      }
+
     } else {
-      // B. FALLO (Opción A): Cancelar y liberar slots
       await client.query(
         "UPDATE bookings SET status = 'failed', cancelled_at = NOW() WHERE id = $1",
         [bookingId]
@@ -70,7 +156,6 @@ export default defineEventHandler(async (event) => {
         "UPDATE payments SET status = 'failed' WHERE flow_token = $1",
         [token]
       )
-      // Liberar slots para otros usuarios
       await client.query(`
         UPDATE availability_slots 
         SET status = 'available', held_until = NULL

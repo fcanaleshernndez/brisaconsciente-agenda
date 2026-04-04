@@ -17,7 +17,10 @@ export default defineEventHandler(async (event) => {
         p.email            AS patient_email,
         prof.first_name || ' ' || prof.last_name AS professional_name,
         pt.name            AS package_name,
-        pt.session_count
+        pt.session_count,
+        pay.id             AS payment_id,
+        pay.flow_token     AS payment_flow_token,
+        pay.paid_at        AS payment_paid_at
         FROM bookings b
         JOIN patients p         ON p.id = b.patient_id
         JOIN professionals prof ON prof.id = b.professional_id
@@ -36,7 +39,30 @@ export default defineEventHandler(async (event) => {
             orderId || null
         ])
         if (rows.length === 0) return null
-        return rows[0]
+        
+        const booking = rows[0]
+        
+        const slotsSql = `
+            SELECT 
+                DATE(start_time) as slot_date,
+                TO_CHAR(start_time, 'HH24:MI') as start_time,
+                TO_CHAR(end_time, 'HH24:MI') as end_time
+            FROM availability_slots
+            WHERE id IN (SELECT slot_id FROM booking_slots WHERE booking_id = $1)
+            ORDER BY start_time
+        `
+        const { rows: slots } = await query(slotsSql, [booking.id])
+        
+        return {
+            ...booking,
+            slots: slots.map(slot => ({
+                date: slot.slot_date instanceof Date 
+                    ? slot.slot_date.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                    : slot.slot_date,
+                start_time: slot.start_time,
+                end_time: slot.end_time
+            }))
+        }
     } catch (error) {
         console.error('Error en status.get:', error)
         throw createError({ statusCode: 500, message: 'Internal Server Error' })

@@ -2,7 +2,10 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss'],
   devtools: { enabled: true },
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL
+    databaseUrl: process.env.DATABASE_URL,
+    public: {
+      companyName: 'Brisa Consciente'
+    }
   },
   vite: {
     server: {

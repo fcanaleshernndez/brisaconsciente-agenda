@@ -10,7 +10,7 @@ export const useDb = () => {
     _pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
-    })
+    } as pg.PoolConfig)
   }
   return _pool
 }

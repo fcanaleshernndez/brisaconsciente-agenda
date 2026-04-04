@@ -1,4 +1,5 @@
 import { query } from "../../../../utils/db";
+import { sendRescheduleNotificationEmail } from "../../../../utils/email";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -19,6 +20,60 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage: 'Estado inválido',
       })
+    }
+
+    if (newStatus === 'rescheduled') {
+      const slotRes = await query(`
+        SELECT 
+          s.start_time,
+          s.end_time,
+          p.full_name as patient_name,
+          p.email as patient_email,
+          p.id as patient_id,
+          prof.first_name || ' ' || prof.last_name as professional_name,
+          prof.id as professional_id,
+          b.id as booking_id
+        FROM availability_slots s
+        JOIN booking_slots bs ON bs.slot_id = s.id
+        JOIN bookings b ON b.id = bs.booking_id
+        JOIN patients p ON p.id = b.patient_id
+        JOIN professionals prof ON prof.id = s.professional_id
+        WHERE s.id = $1
+      `, [id])
+
+      if (slotRes.rows.length === 0) {
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Slot no encontrado o sin reserva asociada',
+        })
+      }
+
+      const slot = slotRes.rows[0]
+
+      await query(`UPDATE availability_slots SET status = 'rescheduled' WHERE id = $1`, [id])
+
+      await query(`
+        INSERT INTO reschedule_history (booking_id, original_slot_id, patient_id, professional_id, status)
+        VALUES ($1, $2, $3, $4, 'pending')
+      `, [slot.booking_id, id, slot.patient_id, slot.professional_id])
+
+      const formattedDate = new Date(slot.start_time).toLocaleDateString('es-CL', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      })
+      const startTime = new Date(slot.start_time).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+      const endTime = new Date(slot.end_time).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+
+      if (slot.patient_email) {
+        sendRescheduleNotificationEmail(slot.patient_email, {
+          patientName: slot.patient_name,
+          professionalName: slot.professional_name,
+          date: formattedDate,
+          time: startTime,
+          endTime: endTime,
+        })
+      }
+
+      return { success: true, message: 'Slot reagendado y paciente notificado' }
     }
 
     const sql = `

@@ -36,10 +36,18 @@ export default defineEventHandler(async (event) => {
     stats.bookings_month = parseInt(bookingsMonth.rows[0].count)
 
     const revenueCustom = await query(`
-      SELECT COALESCE(SUM(total_amount_clp), 0) as total FROM bookings 
-      WHERE paid_at IS NOT NULL
-        AND paid_at >= $1
-        AND paid_at <= $2
+      SELECT COALESCE(SUM(total_amount_clp), 0) as total FROM bookings b
+      WHERE b.paid_at IS NOT NULL
+        AND b.paid_at >= $1
+        AND b.paid_at <= $2
+        AND NOT EXISTS (
+          SELECT 1 FROM booking_slots bs
+          JOIN availability_slots a ON bs.slot_id = a.id
+          JOIN reschedule_history rh ON rh.original_slot_id = a.id
+          WHERE bs.booking_id = b.id 
+            AND a.status = 'rescheduled'
+            AND rh.status = 'completed'
+        )
     `, [dateFrom.toISOString(), dateTo.toISOString()])
     stats.revenue_custom = parseInt(revenueCustom.rows[0].total)
     stats.date_from = dateFrom.toISOString().split('T')[0]

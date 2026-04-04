@@ -90,6 +90,18 @@ export default defineEventHandler(async (event) => {
         `, [slotId])
       }
 
+      const firstSlotId = data.slot_ids[0]
+      await client.query(`
+        UPDATE reschedule_history
+        SET new_booking_id = $1, 
+            new_slot_id = $2, 
+            status = 'completed',
+            completed_at = NOW()
+        WHERE patient_id = $3 
+          AND professional_id = $4 
+          AND status = 'pending'
+      `, [bookingId, firstSlotId, data.patient_id, data.professional_id])
+
       await client.query('COMMIT')
 
       const emailData = await client.query(`

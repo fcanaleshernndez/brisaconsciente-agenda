@@ -16,8 +16,17 @@ export default defineEventHandler(async (event) => {
 
     const totalSql = `
       SELECT COALESCE(SUM(total_amount_clp), 0) as total_amount
-      FROM bookings
-      WHERE paid_at IS NOT NULL AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
+      FROM bookings b
+      WHERE b.paid_at IS NOT NULL 
+        AND b.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+        AND NOT EXISTS (
+          SELECT 1 FROM booking_slots bs
+          JOIN availability_slots a ON bs.slot_id = a.id
+          JOIN reschedule_history rh ON rh.original_slot_id = a.id
+          WHERE bs.booking_id = b.id 
+            AND a.status = 'rescheduled'
+            AND rh.status = 'completed'
+        )
     `
     const { rows: totalResult } = await query(totalSql)
     const totalAmount = parseInt(totalResult[0].total_amount)
@@ -56,8 +65,10 @@ export default defineEventHandler(async (event) => {
       const slotsSql = `
         SELECT 
           bs.booking_id,
+          a.id as slot_id,
           a.start_time,
-          a.end_time
+          a.end_time,
+          a.status as slot_status
         FROM booking_slots bs
         JOIN availability_slots a ON bs.slot_id = a.id
         WHERE bs.booking_id = ANY($1)
@@ -70,8 +81,10 @@ export default defineEventHandler(async (event) => {
           slotsMap[slot.booking_id] = []
         }
         slotsMap[slot.booking_id].push({
+          id: slot.slot_id,
           start: slot.start_time,
-          end: slot.end_time
+          end: slot.end_time,
+          status: slot.slot_status
         })
       })
     }

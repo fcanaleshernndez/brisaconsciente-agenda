@@ -3,6 +3,7 @@ import { useDb } from '../../utils/db'
 import { sign } from '../../utils/flow'
 import { resend, EMAIL_CONFIG } from '../../utils/email'
 import { bookingConfirmationTemplate } from '../../utils/email-templates/booking-confirmation'
+import { sendProfessionalNotificationEmail } from '../../utils/email'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
   const result = await client.query(`
@@ -12,6 +13,7 @@ async function getBookingEmailDetails(client: any, bookingId: number) {
       p.full_name as patient_name,
       p.email as patient_email,
       prof.first_name || ' ' || prof.last_name as professional_name,
+      prof.email as professional_email,
       s.name as specialty_name,
       pt.name as package_name,
       pt.session_count
@@ -85,6 +87,30 @@ async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {
   }
 }
 
+async function sendProfessionalNotification(bookingDetails: any, slots: any[]) {
+  if (!bookingDetails?.professional_email || slots.length === 0) return
+  
+  const sessions = slots.map(slot => ({
+    date: formatDate(slot.slot_date),
+    startTime: slot.start_time,
+    endTime: slot.end_time
+  }))
+  
+  try {
+    await sendProfessionalNotificationEmail(bookingDetails.professional_email, {
+      professionalName: bookingDetails.professional_name,
+      patientName: bookingDetails.patient_name,
+      specialty: bookingDetails.specialty_name,
+      sessions: sessions,
+      amount: bookingDetails.total_amount_clp,
+      bookingId: bookingDetails.booking_id,
+      packageName: bookingDetails.package_name,
+    })
+  } catch (emailError) {
+    console.error('Error sending professional notification:', emailError)
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const token = body.token
@@ -145,6 +171,7 @@ export default defineEventHandler(async (event) => {
       
       if (bookingDetails && slots.length > 0) {
         await sendConfirmationEmail(bookingDetails, slots)
+        await sendProfessionalNotification(bookingDetails, slots)
       }
 
     } else {

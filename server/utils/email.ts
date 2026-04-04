@@ -47,3 +47,38 @@ export async function sendBookingConfirmationEmail(patientEmail: string, data: {
     return { success: false, error }
   }
 }
+
+export async function sendProfessionalNotificationEmail(professionalEmail: string, data: {
+  professionalName: string
+  patientName: string
+  specialty: string
+  sessions: Session[]
+  amount: number
+  bookingId: number
+  packageName: string
+}) {
+  const { professionalNotificationTemplate } = await import('./email-templates/professional-notification')
+  
+  const formattedAmount = new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP'
+  }).format(data.amount)
+
+  const html = professionalNotificationTemplate({
+    ...data,
+    amount: formattedAmount as any,
+  })
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: professionalEmail,
+      subject: `Nueva Reserva Asignada - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending professional notification email:', error)
+    return { success: false, error }
+  }
+}

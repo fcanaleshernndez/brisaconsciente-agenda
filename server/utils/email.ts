@@ -107,3 +107,78 @@ export async function sendRescheduleNotificationEmail(patientEmail: string, data
     return { success: false, error }
   }
 }
+
+export async function sendRescheduleProfessionalEmail(professionalEmail: string, data: {
+  professionalName: string
+  patientName: string
+  date: string
+  time: string
+  endTime: string
+}) {
+  const { rescheduleProfessionalNotificationTemplate } = await import('./email-templates/reschedule-professional-notification')
+
+  const html = rescheduleProfessionalNotificationTemplate(data)
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: professionalEmail,
+      subject: `Cita marcada para reagendamiento - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending professional reschedule notification email:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendCancellationPatientEmail(patientEmail: string, data: {
+  patientName: string
+  professionalName: string
+  date: string
+  time: string
+  endTime: string
+}) {
+  const { cancellationPatientTemplate } = await import('./email-templates/cancellation-notification')
+
+  const html = cancellationPatientTemplate(data)
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: patientEmail,
+      subject: `Tu cita ha sido cancelada - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending cancellation email to patient:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendCancellationProfessionalEmail(professionalEmail: string, data: {
+  professionalName: string
+  patientName: string
+  date: string
+  time: string
+  endTime: string
+}) {
+  const { cancellationProfessionalTemplate } = await import('./email-templates/cancellation-notification')
+
+  const html = cancellationProfessionalTemplate(data)
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: professionalEmail,
+      subject: `Cita cancelada - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending cancellation email to professional:', error)
+    return { success: false, error }
+  }
+}

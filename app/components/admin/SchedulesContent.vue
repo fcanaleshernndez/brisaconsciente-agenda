@@ -12,6 +12,7 @@ const selectedSlot = ref(null)
 const showConfirmCleanup = ref(false)
 const showAddSlots = ref(false)
 const showConfirmReschedule = ref(false)
+const showConfirmCancel = ref(false)
 const selectedDate = ref('')
 const timeSlots = ref([{ start: '09:00', end: '10:00' }])
 const creatingSlots = ref(false)
@@ -96,6 +97,7 @@ async function cleanupOldSlots() {
 function openPatientModal(slot) {
   selectedSlot.value = slot
   showConfirmReschedule.value = false
+  showConfirmCancel.value = false
   showModal.value = true
 }
 
@@ -113,6 +115,26 @@ async function confirmReschedule() {
     })
     showModal.value = false
     showConfirmReschedule.value = false
+    await fetchAvailability(pagination.value.page)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function openCancelConfirm() {
+  showConfirmCancel.value = true
+}
+
+async function confirmCancel() {
+  if (!selectedSlot.value) return
+  
+  try {
+    await $fetch(`/api/admin/slots/${selectedSlot.value.id}/status`, {
+      method: 'PUT',
+      body: { status: 'canceled' }
+    })
+    showModal.value = false
+    showConfirmCancel.value = false
     await fetchAvailability(pagination.value.page)
   } catch (e) {
     console.error(e)
@@ -142,7 +164,7 @@ async function createSlots() {
     })
     
     if (response.conflict) {
-      slotError.value = 'Existen horarios conflictivos con otros ya registrados.'
+      slotError.value = response.message
       return
     }
     
@@ -180,8 +202,9 @@ async function toggleSlotStatus(slot) {
   const newStatus = slot.status === 'canceled' ? 'available' : 'canceled'
   
   if (newStatus === 'canceled' && slot.patient_name) {
-    alert('No puedes cancelar un horario que ya tiene un paciente reservado')
-    return
+    if (!confirm('Este horario tiene un paciente asociado. ¿Cancelar igualmente? Se notificará al paciente.')) {
+      return
+    }
   }
   
   try {
@@ -276,13 +299,13 @@ onMounted(fetchProfessionals)
             </td>
             <td class="px-6 py-4">
               <span :class="{
-                'bg-green-100 text-green-700': slot.status === 'available' && !isPast(slot),
+                'bg-gray-100 text-gray-700': slot.status === 'available' && !isPast(slot),
                 'bg-red-100 text-red-700': slot.status === 'available' && isPast(slot),
                 'bg-amber-100 text-amber-700': slot.status === 'held',
-                'bg-red-100 text-red-700': slot.status === 'booked',
+                'bg-green-100 text-green-700': slot.status === 'booked',
                 'bg-blue-100 text-blue-700': slot.status === 'rescheduled',
                 'bg-purple-100 text-purple-600': slot.status === 'manually_booked',
-                'bg-gray-100 text-gray-600': slot.status === 'canceled',
+                'bg-red-100 text-red-600': slot.status === 'canceled',
               }" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ slot.status === 'available' ? (isPast(slot) ? 'Vencido' : 'Disponible') : slot.status === 'held' ? 'Reservado' : slot.status === 'booked' ? 'Ocupado' : slot.status === 'rescheduled' ? 'Reagendado' : slot.status === 'manually_booked' ? 'Manualmente Reservado' : 'Cancelado' }}
               </span>
@@ -300,12 +323,19 @@ onMounted(fetchProfessionals)
                   Cancelar
                 </button>
                 <button 
-                  v-else-if="slot.status === 'canceled'"
+                  v-if="slot.status === 'canceled' && !slot.patient_name"
                   @click="toggleSlotStatus(slot)"
                   class="text-green-600 hover:text-green-800 text-sm font-medium text-left"
                 >
                   Activar
                 </button>
+                <span 
+                  v-if="slot.status === 'canceled' && slot.patient_name" 
+                  class="text-red-500 text-xs italic"
+                  title="Este horario fue cancelado con un paciente asociado y no puede reactivarse"
+                >
+                  Cancelado
+                </span>
                 <button 
                   v-if="slot.patient_name"
                   @click="openPatientModal(slot)"
@@ -313,7 +343,7 @@ onMounted(fetchProfessionals)
                 >
                   Ver paciente
                 </button>
-                <span v-if="!slot.patient_name && slot.status !== 'canceled'" class="text-gray-400 text-sm">-</span>
+                <span v-if="!slot.patient_name && slot.status === 'available'" class="text-gray-400 text-sm">-</span>
               </div>
             </td>
           </tr>
@@ -422,6 +452,33 @@ onMounted(fetchProfessionals)
                 <button 
                   @click="showConfirmReschedule = false"
                   class="flex-1 text-sm border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+
+            <!-- Botón Cancelar -->
+            <div v-if="selectedSlot.status === 'booked' || selectedSlot.status === 'manually_booked' || selectedSlot.status === 'rescheduled'" class="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p class="text-sm text-red-700 mb-2">¿Deseas cancelar esta reserva?</p>
+              <p class="text-xs text-red-600 mb-2">Esta acción no se puede deshacer y el paciente no recibirá reagendamiento automático.</p>
+              <button 
+                v-if="!showConfirmCancel"
+                @click="openCancelConfirm"
+                class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg"
+              >
+                Cancelar Reserva
+              </button>
+              <div v-else class="flex gap-2">
+                <button 
+                  @click="confirmCancel"
+                  class="flex-1 text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg"
+                >
+                  Confirmar
+                </button>
+                <button 
+                  @click="showConfirmCancel = false"
+                  class="flex-1 text-sm border border-red-300 text-red-700 px-3 py-1.5 rounded-lg"
                 >
                   Cancelar
                 </button>

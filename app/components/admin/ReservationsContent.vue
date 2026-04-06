@@ -587,7 +587,7 @@ onMounted(async () => {
     <!-- Modal Ayuda Estados -->
     <Teleport to="body">
       <div v-if="showHelpModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showHelpModal = false">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" @click.stop>
+        <div class="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl" @click.stop>
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-bold text-gray-800">Estados de Horarios</h3>
             <button @click="showHelpModal = false" class="text-gray-400 hover:text-gray-600">

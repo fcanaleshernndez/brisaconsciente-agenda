@@ -33,14 +33,15 @@ export default defineEventHandler(async (event) => {
       const endDateTime = new Date(`${date}T${slot.end}:00`)
 
       const checkSql = `
-        SELECT start_time, end_time 
+        SELECT start_time, end_time, status 
         FROM availability_slots 
         WHERE professional_id = $1 
-          AND status = 'available'
           AND (
             (start_time < $3 AND end_time > $2)
             OR
             (start_time >= $2 AND start_time < $3)
+            OR
+            (start_time = $2)
           )
       `
       
@@ -51,8 +52,9 @@ export default defineEventHandler(async (event) => {
           start: slot.start,
           end: slot.end,
           existing: rows.map(r => ({
-            start: new Date(r.start_time).toTimeString().slice(0,5),
-            end: new Date(r.end_time).toTimeString().slice(0,5)
+            start: new Date(r.start_time).toISOString().slice(11,16),
+            end: new Date(r.end_time).toISOString().slice(11,16),
+            status: r.status
           }))
         })
       }

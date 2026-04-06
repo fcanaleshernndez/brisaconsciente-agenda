@@ -1,5 +1,6 @@
 import { query } from "../../../utils/db";
 import { z } from "zod";
+import { logError } from "../../../utils/logger";
 
 const updatePackageSchema = z.object({
   name: z.string().min(1),
@@ -47,6 +48,12 @@ export default defineEventHandler(async (event) => {
     
     return { success: true, package: rows[0] }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/packages/:id',
+      method: 'PUT',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al actualizar paquete: ' + error,

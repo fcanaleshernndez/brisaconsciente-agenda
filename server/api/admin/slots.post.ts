@@ -1,5 +1,6 @@
 import { query } from "../../utils/db";
 import { z } from "zod";
+import { logError } from "../../utils/logger";
 
 const timeSlotSchema = z.object({
   start: z.string(),
@@ -87,7 +88,12 @@ export default defineEventHandler(async (event) => {
     
     return { success: true, created: createdIds.length }
   } catch (error) {
-  
+    logError({
+      endpoint: '/api/admin/slots',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al crear horarios: ' + error,

@@ -4,6 +4,7 @@ import { sign } from '../../utils/flow'
 import { resend, EMAIL_CONFIG } from '../../utils/email'
 import { bookingConfirmationTemplate } from '../../utils/email-templates/booking-confirmation'
 import { sendProfessionalNotificationEmail } from '../../utils/email'
+import { logError } from '../../utils/logger'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
   const result = await client.query(`
@@ -195,6 +196,12 @@ export default defineEventHandler(async (event) => {
 
   } catch (e) {
     await client.query('ROLLBACK')
+    logError({
+      endpoint: '/api/flow/confirm',
+      method: 'POST',
+      error: String(e),
+      stack: e instanceof Error ? e.stack : undefined
+    })
     throw e
   } finally {
     client.release()

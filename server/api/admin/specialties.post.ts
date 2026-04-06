@@ -1,5 +1,6 @@
 import { query } from "../../utils/db";
 import { z } from "zod";
+import { logError } from "../../utils/logger";
 
 const createSpecialtySchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -29,6 +30,12 @@ export default defineEventHandler(async (event) => {
 
     return rows[0];
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/specialties',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: "Error al crear especialidad: " + error,

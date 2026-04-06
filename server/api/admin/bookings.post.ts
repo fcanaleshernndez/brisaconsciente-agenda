@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { sendBookingConfirmationEmail, sendProfessionalNotificationEmail } from "../../utils/email";
+import { logError } from "../../utils/logger";
 
 const manualBookingSchema = z.object({
   patient_id: z.number().int().positive("Paciente requerido"),
@@ -152,11 +153,25 @@ export default defineEventHandler(async (event) => {
       
     } catch (e) {
       await client.query('ROLLBACK')
+      logError({
+        endpoint: '/api/admin/bookings',
+        method: 'POST',
+        patient_id: data?.patient_id,
+        professional_id: data?.professional_id,
+        error: String(e),
+        stack: e instanceof Error ? e.stack : undefined
+      })
       throw e
     } finally {
       client.release()
     }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/bookings',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al crear reserva manual: ' + error,

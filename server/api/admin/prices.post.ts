@@ -1,5 +1,6 @@
 import { query } from "../../utils/db";
 import { z } from "zod";
+import { logError } from "../../utils/logger";
 
 const createPriceSchema = z.object({
   professional_id: z.number().int().positive(),
@@ -45,6 +46,12 @@ export default defineEventHandler(async (event) => {
     
     return { success: true, id: rows[0].id }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/prices',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al crear precio: ' + error,

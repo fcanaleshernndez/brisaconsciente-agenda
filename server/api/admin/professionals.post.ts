@@ -1,5 +1,6 @@
 import { query } from "../../utils/db";
 import { z } from "zod";
+import { logError } from "../../utils/logger";
 
 const createProfessionalSchema = z.object({
   first_name: z.string().min(1, "El nombre es requerido"),
@@ -54,6 +55,12 @@ export default defineEventHandler(async (event) => {
       specialty: specialtyResult.rows[0]?.name,
     };
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/professionals',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: "Error al crear profesional: " + error,

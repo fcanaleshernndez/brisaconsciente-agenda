@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import DashboardContent from '~/components/admin/DashboardContent.vue'
 import ProfessionalsContent from '~/components/admin/ProfessionalsContent.vue'
 import PatientsContent from '~/components/admin/PatientsContent.vue'
@@ -8,26 +8,34 @@ import PricesContent from '~/components/admin/PricesContent.vue'
 import SpecialtiesContent from '~/components/admin/SpecialtiesContent.vue'
 import ReservationsContent from '~/components/admin/ReservationsContent.vue'
 import ReschedulesContent from '~/components/admin/ReschedulesContent.vue'
+import LogsContent from '~/components/admin/LogsContent.vue'
 
 definePageMeta({
   layout: false
 })
 
+const route = useRoute()
 const admin = ref(null)
 const token = ref('')
 const adminSection = useAdminSection()
 const sidebarOpen = ref(false)
 
 onMounted(() => {
-  token.value = localStorage.getItem('admin_token')
+  const storedToken = localStorage.getItem('admin_token')
   const user = localStorage.getItem('admin_user')
   
-  if (!token.value || !user) {
+  if (!storedToken || !user) {
     navigateTo('/admin/login')
     return
   }
   
+  token.value = storedToken
   admin.value = JSON.parse(user)
+  
+  const tab = route.query.tab
+  if (tab && typeof tab === 'string') {
+    adminSection.value = tab
+  }
 })
 
 function toggleSidebar() {
@@ -73,6 +81,7 @@ function toggleSidebar() {
       <SchedulesContent v-else-if="adminSection === 'schedules'" />
       <PackagesContent v-else-if="adminSection === 'packages'" />
       <PricesContent v-else-if="adminSection === 'prices'" />
+      <LogsContent v-else-if="adminSection === 'logs'" />
     </main>
   </div>
 </template>

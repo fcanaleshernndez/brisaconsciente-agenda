@@ -1,5 +1,6 @@
 import { query } from "../../../../utils/db";
 import { sendRescheduleNotificationEmail, sendRescheduleProfessionalEmail, sendCancellationPatientEmail, sendCancellationProfessionalEmail } from "../../../../utils/email";
+import { logError } from "../../../../utils/logger";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -183,6 +184,12 @@ export default defineEventHandler(async (event) => {
     
     return { success: true, slot: rows[0] }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/slots/:id/status',
+      method: 'PUT',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al actualizar estado: ' + error,

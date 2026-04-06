@@ -1,4 +1,5 @@
 import { query } from "../../../utils/db";
+import { logError } from "../../../utils/logger";
 
 export default defineEventHandler(async (event) => {
   const queryParams = getQuery(event)
@@ -29,7 +30,13 @@ export default defineEventHandler(async (event) => {
 
     return rows
   } catch (error: any) {
-    console.error('Error querying prices:', error)
+    logError({
+      endpoint: '/api/admin/prices/list',
+      method: 'GET',
+      professional_id: professionalId ? parseInt(String(professionalId)) : undefined,
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al consultar precios: ' + error.message,

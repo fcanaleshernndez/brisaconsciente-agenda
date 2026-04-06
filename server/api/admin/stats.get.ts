@@ -1,4 +1,5 @@
 import { query } from "../../utils/db";
+import { logError } from "../../utils/logger";
 
 export default defineEventHandler(async (event) => {
   const queryParams = getQuery(event)
@@ -71,6 +72,12 @@ export default defineEventHandler(async (event) => {
 
     return stats
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/stats',
+      method: 'GET',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al obtener estadísticas: ' + error,

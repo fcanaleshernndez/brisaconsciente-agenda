@@ -1,5 +1,6 @@
 import { query } from "../../../../utils/db";
 import { z } from "zod";
+import { logError } from "../../../../utils/logger";
 
 const updatePaidSchema = z.object({
   paid: z.boolean()
@@ -34,6 +35,12 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, paid_at: rows[0].paid_at }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/bookings/:id/paid',
+      method: 'PUT',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: "Error al actualizar pago: " + error,

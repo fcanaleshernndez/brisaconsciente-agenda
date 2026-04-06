@@ -1,5 +1,6 @@
 import { query } from "../../../utils/db";
 import { z } from "zod";
+import { logError } from "../../../utils/logger";
 
 const updatePriceSchema = z.object({
   price_clp: z.number().int().nonnegative(),
@@ -47,6 +48,12 @@ export default defineEventHandler(async (event) => {
     
     return { success: true }
   } catch (error) {
+    logError({
+      endpoint: '/api/admin/prices/:id',
+      method: 'PUT',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     throw createError({
       statusCode: 500,
       statusMessage: 'Error al actualizar precio: ' + error,

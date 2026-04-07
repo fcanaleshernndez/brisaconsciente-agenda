@@ -2,7 +2,8 @@
 import { z } from 'zod'
 import { useDb } from '../utils/db'
 import { BookingsRepo } from '../repos/bookings'
-import { flowCreatePayment } from '#imports' 
+import { flowCreatePayment } from '#imports'
+import { logError } from '../utils/logger' 
 
 const bookingSchema = z.object({
   name: z.string().min(3),
@@ -87,6 +88,14 @@ export default defineEventHandler(async (event) => {
 
   } catch (e) {
     await client.query('ROLLBACK')
+    logError({
+      endpoint: '/api/bookings',
+      method: 'POST',
+      error: String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+      professional_id,
+      patient_id: undefined
+    })
     throw e
   } finally {
     client.release()

@@ -1,4 +1,5 @@
 import { query } from '../../utils/db'
+import { logError } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
     const { token, orderId } = getQuery(event)
@@ -60,7 +61,12 @@ export default defineEventHandler(async (event) => {
             }))
         }
     } catch (error) {
-        console.error('Error en status.get:', error)
+        logError({
+            endpoint: '/api/bookings/status',
+            method: 'GET',
+            error: String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+        })
         throw createError({ statusCode: 500, message: 'Internal Server Error' })
     }
 })

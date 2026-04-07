@@ -2,6 +2,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { useDb } from '../utils/db'
+import { logError } from '../utils/logger'
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -51,6 +52,14 @@ export default defineEventHandler(async (event) => {
         name: admin.name
       }
     }
+  } catch (error) {
+    logError({
+      endpoint: '/api/admin-login',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    throw error
   } finally {
     client.release()
   }

@@ -2,6 +2,10 @@
 const route = useRoute()
 const adminSection = useAdminSection()
 
+const showHealthModal = ref(false)
+const healthData = ref(null)
+const healthLoading = ref(false)
+
 const menuItems = [
   { name: 'Dashboard', key: 'dashboard', icon: 'home' },
   { name: 'Reservas', key: 'bookings', icon: 'calendar' },
@@ -29,6 +33,18 @@ function logout() {
   localStorage.removeItem('admin_token')
   localStorage.removeItem('admin_user')
   navigateTo('/admin/login')
+}
+
+async function checkHealth() {
+  healthLoading.value = true
+  showHealthModal.value = true
+  try {
+    healthData.value = await $fetch('/api/health')
+  } catch (e) {
+    healthData.value = { status: 'error', error: e.message }
+  } finally {
+    healthLoading.value = false
+  }
 }
 </script>
 
@@ -81,6 +97,19 @@ function logout() {
       </button>
     </nav>
 
+    <!-- Health Check -->
+    <div class="p-4 border-t border-gray-100">
+      <button 
+        @click="checkHealth"
+        class="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-sm transition"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Estado del sistema
+      </button>
+    </div>
+
     <!-- User -->
     <div class="p-4 border-t border-gray-100">
       <div class="flex items-center justify-between">
@@ -91,4 +120,51 @@ function logout() {
       </div>
     </div>
   </aside>
+
+  <!-- Health Modal -->
+  <Teleport to="body">
+    <div v-if="showHealthModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showHealthModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-800">Estado del Sistema</h3>
+          <button @click="showHealthModal = false" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="healthLoading" class="text-center py-8">
+          <div class="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p class="mt-2 text-gray-500 text-sm">Verificando...</p>
+        </div>
+
+        <div v-else-if="healthData">
+          <div class="mb-4 flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full" :class="healthData.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'"></span>
+            <span class="font-medium" :class="healthData.status === 'healthy' ? 'text-green-600' : 'text-yellow-600'">
+              {{ healthData.status === 'healthy' ? 'Todos los servicios operativos' : 'Sistema con problemas' }}
+            </span>
+          </div>
+
+          <div class="space-y-2">
+            <div v-for="(service, name) in healthData.services" :key="name" class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="font-medium text-gray-700 capitalize">{{ name }}</span>
+              <div class="flex items-center gap-2">
+                <span v-if="service.latency_ms" class="text-xs text-gray-400">{{ service.latency_ms }}ms</span>
+                <span class="px-2 py-1 rounded-full text-xs font-medium" 
+                  :class="service.status === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                  {{ service.status === 'up' ? 'UP' : 'DOWN' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-4 text-xs text-gray-400 text-center">
+            Actualizado: {{ new Date(healthData.timestamp).toLocaleString('es-CL') }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

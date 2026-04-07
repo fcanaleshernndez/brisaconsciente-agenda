@@ -12,6 +12,7 @@ export interface Session {
   date: string
   startTime: string
   endTime: string
+  meetLink?: string | null
 }
 
 export async function sendBookingConfirmationEmail(patientEmail: string, data: {

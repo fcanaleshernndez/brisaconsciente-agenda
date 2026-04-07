@@ -5,6 +5,7 @@ import { resend, EMAIL_CONFIG } from '../../utils/email'
 import { bookingConfirmationTemplate } from '../../utils/email-templates/booking-confirmation'
 import { sendProfessionalNotificationEmail } from '../../utils/email'
 import { logError } from '../../utils/logger'
+import { createGoogleMeetMeeting } from '../../utils/googleCalendar'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
   const result = await client.query(`
@@ -31,40 +32,34 @@ async function getBookingEmailDetails(client: any, bookingId: number) {
 async function getBookingSlots(client: any, bookingId: number) {
   const result = await client.query(`
     SELECT 
-      DATE(start_time) as slot_date,
-      TO_CHAR(start_time, 'HH24:MI') as start_time,
-      TO_CHAR(end_time, 'HH24:MI') as end_time
-    FROM availability_slots
-    WHERE id IN (SELECT slot_id FROM booking_slots WHERE booking_id = $1)
-    ORDER BY start_time
+      asl.id as slot_id,
+      asl.start_time,
+      asl.end_time,
+      asl.meet_link
+    FROM availability_slots asl
+    JOIN booking_slots bs ON bs.slot_id = asl.id
+    WHERE bs.booking_id = $1
+    ORDER BY asl.start_time
   `, [bookingId])
   return result.rows
 }
 
-function formatDate(dateStr: any) {
-  let date
-  if (typeof dateStr === 'string') {
-    date = new Date(dateStr + 'T00:00:00')
-  } else if (dateStr instanceof Date) {
-    date = dateStr
-  } else {
-    date = new Date(dateStr)
-  }
-  return date.toLocaleDateString('es-CL', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
+function formatSpanishDate(date: any) {
+  return new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date)).replace('.', '')
+}
+
+function formatSpanishTime(date: any) {
+  return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(new Date(date))
 }
 
 async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {
   if (!bookingDetails?.patient_email || slots.length === 0) return
   
   const sessions = slots.map(slot => ({
-    date: formatDate(slot.slot_date),
-    startTime: slot.start_time,
-    endTime: slot.end_time
+    date: formatSpanishDate(slot.start_time),
+    startTime: formatSpanishTime(slot.start_time),
+    endTime: formatSpanishTime(slot.end_time),
+    meetLink: slot.meet_link
   }))
   
   const html = bookingConfirmationTemplate({
@@ -92,9 +87,10 @@ async function sendProfessionalNotification(bookingDetails: any, slots: any[]) {
   if (!bookingDetails?.professional_email || slots.length === 0) return
   
   const sessions = slots.map(slot => ({
-    date: formatDate(slot.slot_date),
-    startTime: slot.start_time,
-    endTime: slot.end_time
+    date: formatSpanishDate(slot.start_time),
+    startTime: formatSpanishTime(slot.start_time),
+    endTime: formatSpanishTime(slot.end_time),
+    meetLink: slot.meet_link
   }))
   
   try {
@@ -109,6 +105,40 @@ async function sendProfessionalNotification(bookingDetails: any, slots: any[]) {
     })
   } catch (emailError) {
     console.error('Error sending professional notification:', emailError)
+  }
+}
+
+async function createMeetLinksForSlots(client: any, bookingDetails: any, slots: any[], bookingId: number) {
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i]
+    
+    if (!slot.meet_link) {
+      try {
+        const meeting = await createGoogleMeetMeeting({
+          summary: `Sesión ${i + 1}/${slots.length} - ${bookingDetails.professional_name} con ${bookingDetails.patient_name}`,
+          description: `${bookingDetails.specialty_name}\nReserva #${bookingId}`,
+          startTime: slot.start_time,
+          endTime: slot.end_time,
+          patientEmail: bookingDetails.patient_email,
+          patientName: bookingDetails.patient_name,
+          professionalEmail: bookingDetails.professional_email,
+          professionalName: bookingDetails.professional_name,
+        })
+
+        await client.query(`
+          UPDATE availability_slots
+          SET meet_link = $1, calendar_event_id = $2
+          WHERE id = $3
+        `, [meeting.meetLink, meeting.eventId, slot.slot_id])
+
+        slot.meet_link = meeting.meetLink
+      } catch (meetError: any) {
+        console.error('Error creating Google Meet for slot:', meetError?.message || meetError)
+        if (meetError?.response?.data) {
+          console.error('Google API error details:', meetError.response.data)
+        }
+      }
+    }
   }
 }
 
@@ -171,6 +201,7 @@ export default defineEventHandler(async (event) => {
       const slots = await getBookingSlots(client, bookingId)
       
       if (bookingDetails && slots.length > 0) {
+        await createMeetLinksForSlots(client, bookingDetails, slots, bookingId)
         await sendConfirmationEmail(bookingDetails, slots)
         await sendProfessionalNotification(bookingDetails, slots)
       }

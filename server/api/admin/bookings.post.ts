@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { sendBookingConfirmationEmail, sendProfessionalNotificationEmail } from "../../utils/email";
 import { logError } from "../../utils/logger";
+import { createGoogleMeetMeeting } from "../../utils/googleCalendar";
 
 const manualBookingSchema = z.object({
   patient_id: z.number().int().positive("Paciente requerido"),
@@ -50,9 +51,11 @@ export default defineEventHandler(async (event) => {
       const slotsRes = await client.query(`
         SELECT 
           id,
+          start_time,
+          end_time,
           DATE(start_time) as slot_date,
-          TO_CHAR(start_time, 'HH24:MI') as start_time,
-          TO_CHAR(end_time, 'HH24:MI') as end_time
+          TO_CHAR(start_time, 'HH24:MI') as start_time_str,
+          TO_CHAR(end_time, 'HH24:MI') as end_time_str
         FROM availability_slots
         WHERE id = ANY($1::int[])
           AND professional_id = $2
@@ -66,8 +69,11 @@ export default defineEventHandler(async (event) => {
 
       const slotsForEmail = slotsRes.rows.map(slot => ({
         date: formatDate(slot.slot_date),
-        startTime: slot.start_time,
-        endTime: slot.end_time
+        startTime: slot.start_time_str,
+        endTime: slot.end_time_str,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        meetLink: null
       }))
 
       const bookingRes = await client.query(`
@@ -78,17 +84,19 @@ export default defineEventHandler(async (event) => {
 
       const bookingId = bookingRes.rows[0].id
 
-      for (const slotId of data.slot_ids) {
+      for (let i = 0; i < slotsRes.rows.length; i++) {
+        const slot = slotsRes.rows[i]
+        
         await client.query(`
           INSERT INTO booking_slots (booking_id, slot_id)
           VALUES ($1, $2)
-        `, [bookingId, slotId])
+        `, [bookingId, slot.id])
 
         await client.query(`
           UPDATE availability_slots
           SET status = 'manually_booked'
           WHERE id = $1
-        `, [slotId])
+        `, [slot.id])
       }
 
       const firstSlotId = data.slot_ids[0]
@@ -104,6 +112,53 @@ export default defineEventHandler(async (event) => {
       `, [bookingId, firstSlotId, data.patient_id, data.professional_id])
 
       await client.query('COMMIT')
+
+      let meetLinks: string[] = []
+      
+      const meetingData = await client.query(`
+        SELECT 
+          p.full_name as patient_name,
+          p.email as patient_email,
+          prof.first_name || ' ' || prof.last_name as professional_name,
+          prof.email as professional_email,
+          s.name as specialty_name
+        FROM bookings b
+        JOIN patients p ON p.id = b.patient_id
+        JOIN professionals prof ON prof.id = b.professional_id
+        JOIN specialties s ON s.id = prof.specialty_id
+        WHERE b.id = $1
+      `, [bookingId])
+
+      const bookingInfo = meetingData.rows[0]
+
+      for (let i = 0; i < slotsRes.rows.length; i++) {
+        const slot = slotsRes.rows[i]
+        const slotForEmail: any = slotsForEmail[i]
+        
+        try {
+          const meeting = await createGoogleMeetMeeting({
+            summary: `Sesión ${i + 1}/${slotsRes.rows.length} - ${bookingInfo.professional_name} con ${bookingInfo.patient_name}`,
+            description: `${bookingInfo.specialty_name}\nReserva #${bookingId}`,
+            startTime: slot.start_time,
+            endTime: slot.end_time,
+            patientEmail: bookingInfo.patient_email,
+            patientName: bookingInfo.patient_name,
+            professionalEmail: bookingInfo.professional_email,
+            professionalName: bookingInfo.professional_name,
+          })
+
+          await client.query(`
+            UPDATE availability_slots
+            SET meet_link = $1, calendar_event_id = $2
+            WHERE id = $3
+          `, [meeting.meetLink, meeting.eventId, slot.id])
+
+          slotForEmail.meetLink = meeting.meetLink
+          meetLinks.push(meeting.meetLink)
+        } catch (meetError) {
+          console.error('Error creating Google Meet:', meetError)
+        }
+      }
 
       const emailData = await client.query(`
         SELECT 
@@ -148,7 +203,7 @@ export default defineEventHandler(async (event) => {
       return {
         success: true,
         booking_id: bookingId,
-        message: 'Reserva manual creada exitosamente'
+        message: 'Reserva manual creada exitosamente',
       }
       
     } catch (e) {

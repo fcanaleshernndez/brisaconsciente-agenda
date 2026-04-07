@@ -4,7 +4,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
-      companyName: 'Brisa Consciente'
+      companyName: 'Brisa Consciente',
+      recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY
     }
   },
   vite: {

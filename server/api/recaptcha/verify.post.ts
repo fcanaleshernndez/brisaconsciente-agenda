@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logError } from '../../utils/logger'
 
 const verifySchema = z.object({
   token: z.string().min(1),
@@ -45,6 +46,12 @@ export default defineEventHandler(async (event) => {
       score,
     }
   } catch (error: any) {
+    logError({
+      endpoint: '/api/recaptcha/verify',
+      method: 'POST',
+      error: String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return {
       success: false,
       message: 'Error verificando reCAPTCHA',

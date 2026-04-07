@@ -30,9 +30,9 @@
             <div v-for="(slot, index) in booking.slots" :key="index" class="text-sm">
               <div class="flex justify-between items-center">
                 <span class="text-gray-600 font-medium">Sesión {{ index + 1 }}</span>
-                <span class="text-gray-500">{{ slot.start_time }} - {{ slot.end_time }}</span>
+                <span class="text-gray-500">{{ formatTimeES(slot.start_time) }} - {{ formatTimeES(slot.end_time) }}</span>
               </div>
-              <span class="text-gray-700">{{ slot.date }}</span>
+              <span class="text-gray-700">{{ formatDateES(slot.start_time) }}</span>
             </div>
           </div>
         </div>
@@ -90,6 +90,16 @@ const EMAIL_CONFIG = {
 const formatCLP = (n) => new Intl.NumberFormat('es-CL', {
   style: 'currency', currency: 'CLP', maximumFractionDigits: 0
 }).format(n)
+
+const formatDateES = (dateStr) => {
+  const date = new Date(dateStr)
+  return new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(date).replace('.', '')
+}
+
+const formatTimeES = (dateStr) => {
+  const date = new Date(dateStr)
+  return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(date)
+}
 
 async function checkStatus() {
   if (attempts >= MAX_ATTEMPTS) {
@@ -209,8 +219,8 @@ function downloadReceipt() {
     doc.setFont('helvetica', 'normal')
     booking.value.slots.forEach((slot, i) => {
       doc.text(`${i + 1}`, margin + 2, y)
-      doc.text(slot.date.substring(0, 22), margin + 20, y)
-      doc.text(`${slot.start_time} - ${slot.end_time}`, margin + 90, y)
+      doc.text(formatDateES(slot.start_time), margin + 20, y)
+      doc.text(`${formatTimeES(slot.start_time)} - ${formatTimeES(slot.end_time)}`, margin + 90, y)
       y += 10
     })
   }

@@ -44,9 +44,8 @@ export default defineEventHandler(async (event) => {
         
         const slotsSql = `
             SELECT 
-                DATE(start_time) as slot_date,
-                TO_CHAR(start_time, 'HH24:MI') as start_time,
-                TO_CHAR(end_time, 'HH24:MI') as end_time
+                start_time,
+                end_time
             FROM availability_slots
             WHERE id IN (SELECT slot_id FROM booking_slots WHERE booking_id = $1)
             ORDER BY start_time
@@ -56,9 +55,6 @@ export default defineEventHandler(async (event) => {
         return {
             ...booking,
             slots: slots.map(slot => ({
-                date: slot.slot_date instanceof Date 
-                    ? slot.slot_date.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-                    : slot.slot_date,
                 start_time: slot.start_time,
                 end_time: slot.end_time
             }))

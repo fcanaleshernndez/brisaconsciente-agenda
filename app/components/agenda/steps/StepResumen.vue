@@ -3,7 +3,11 @@ const props = defineProps({ form: Object })
 const emit = defineEmits(['prev'])
 
 const loading = ref(false)
+const isVerifying = ref(false)
 const error = ref(null)
+
+const config = useRuntimeConfig()
+const siteKey = config.public.recaptchaSiteKey
 
 const formatCLP = (n) => new Intl.NumberFormat('es-CL', {
   style: 'currency', currency: 'CLP', maximumFractionDigits: 0
@@ -15,9 +19,53 @@ const formatSlot = (iso) => new Date(iso).toLocaleDateString('es-CL', {
   hour: '2-digit', minute: '2-digit'
 })
 
+async function getRecaptchaToken() {
+  return new Promise((resolve) => {
+    if (typeof grecaptcha !== 'undefined') {
+      grecaptcha.ready(async () => {
+        try {
+          const token = await grecaptcha.execute(siteKey, { action: 'booking' })
+          resolve(token)
+        } catch {
+          resolve(null)
+        }
+      })
+    } else {
+      resolve(null)
+    }
+  })
+}
+
 const handlePay = async () => {
-  loading.value = true
+  isVerifying.value = true
   error.value = null
+
+  try {
+    const token = await getRecaptchaToken()
+    
+    if (!token) {
+      error.value = 'Error de verificación de seguridad. Recargá la página.'
+      isVerifying.value = false
+      return
+    }
+
+    const verifyResult = await $fetch('/api/recaptcha/verify', {
+      method: 'POST',
+      body: { token, action: 'booking' }
+    })
+
+    if (!verifyResult.success) {
+      error.value = 'Verificación de seguridad fallida. Intentá de nuevo.'
+      isVerifying.value = false
+      return
+    }
+  } catch (e) {
+    error.value = 'Error de verificación. Intentá de nuevo.'
+    isVerifying.value = false
+    return
+  }
+
+  loading.value = true
   try {
     const data = await $fetch('/api/bookings', {
       method: 'POST',
@@ -38,6 +86,7 @@ const handlePay = async () => {
     error.value = 'Hubo un problema al procesar tu reserva. Intenta nuevamente.'
   } finally {
     loading.value = false
+    isVerifying.value = false
   }
 }
 </script>
@@ -121,18 +170,18 @@ const handlePay = async () => {
     <div class="flex gap-3">
       <button
         @click="emit('prev')"
-        :disabled="loading"
+        :disabled="loading || isVerifying"
         class="flex-1 border-2 border-gray-200 text-gray-500 font-semibold py-3 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
       >
         ← Volver
       </button>
       <button
         @click="handlePay"
-        :disabled="loading"
+        :disabled="loading || isVerifying"
         class="flex-1 bg-softGreen hover:bg-softGreen/70 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-teal-100 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        <span v-if="loading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        {{ loading ? 'Procesando...' : 'Ir a pagar' }}
+        <span v-if="loading || isVerifying" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        {{ isVerifying ? 'Verificando...' : loading ? 'Procesando...' : 'Ir a pagar' }}
       </button>
     </div>
   </div>

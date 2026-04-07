@@ -1,5 +1,12 @@
 import { EMAIL_CONFIG } from '../email'
 
+export interface Session {
+  date: string
+  startTime: string
+  endTime: string
+  meetLink?: string | null
+}
+
 export interface ProfessionalNotificationData {
   professionalName: string
   patientName: string
@@ -10,12 +17,6 @@ export interface ProfessionalNotificationData {
   packageName: string
 }
 
-export interface Session {
-  date: string
-  startTime: string
-  endTime: string
-}
-
 export function professionalNotificationTemplate(data: ProfessionalNotificationData) {
   const formattedAmount = typeof data.amount === 'string' 
     ? data.amount 
@@ -24,13 +25,19 @@ export function professionalNotificationTemplate(data: ProfessionalNotificationD
         currency: 'CLP'
       }).format(data.amount)
 
-  const sessionsRows = data.sessions.map((session, index) => `
+  const sessionsRows = data.sessions.map((session, index) => {
+    const meetLinkHtml = session.meetLink 
+      ? `<a href="${session.meetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4285F4 0%, #6366F1 100%); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; white-space: nowrap;">Unirse</a>`
+      : '<span style="color: #999; font-size: 12px;">Pendiente</span>'
+    
+    return `
     <tr>
-      <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${index + 1}</td>
-      <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${session.date}</td>
-      <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${session.startTime} - ${session.endTime}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: center;">${index + 1}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee;">${session.date}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee;">${session.startTime} - ${session.endTime}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: center;">${meetLinkHtml}</td>
     </tr>
-  `).join('')
+  `}).join('')
 
   return `
     <!DOCTYPE html>
@@ -70,16 +77,17 @@ export function professionalNotificationTemplate(data: ProfessionalNotificationD
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #f8f9fa; border-radius: 8px;">
           <thead>
             <tr style="background: #A8D5BA;">
-              <th style="padding: 8px; text-align: left; color: white; font-size: 12px;">#</th>
+              <th style="padding: 8px; text-align: center; color: white; font-size: 12px;">#</th>
               <th style="padding: 8px; text-align: left; color: white; font-size: 12px;">Fecha</th>
               <th style="padding: 8px; text-align: left; color: white; font-size: 12px;">Horario</th>
+              <th style="padding: 8px; text-align: center; color: white; font-size: 12px;">Videollamada</th>
             </tr>
           </thead>
           <tbody>
             ${sessionsRows}
           </tbody>
         </table>
-                
+                 
         <p style="margin: 20px 0 0 0; font-size: 11px; color: #666;">
           Este es un email automático. No respondas directamente a este mensaje.
         </p>

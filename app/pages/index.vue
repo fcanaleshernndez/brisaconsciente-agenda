@@ -6,6 +6,19 @@ import StepPaquete from '~/components/agenda/steps/StepPaquete.vue'
 import StepProfesional from '~/components/agenda/steps/StepProfesional.vue'
 import StepResumen from '~/components/agenda/steps/StepResumen.vue'
 
+const config = useRuntimeConfig()
+const siteKey = config.public.recaptchaSiteKey
+
+useHead({
+    script: [
+        {
+            src: 'https://www.google.com/recaptcha/api.js?render=' + siteKey,
+            async: true,
+            defer: true
+        }
+    ]
+})
+
 const step = ref(0)
 const totalSteps = 5
 
@@ -19,11 +32,9 @@ const form = reactive({
     slots: []
 })
 
-// Navegación
 const next = () => step.value++
 const prev = () => step.value--
 
-// Lógica de selección
 const selectProfessional = (p) => {
     form.professional = p
     form.package = null

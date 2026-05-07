@@ -1,4 +1,4 @@
 [[cron]]
   name = "appointment-reminders"
   schedule = "0 12,0 * * *"  # 8:00 AM y 8:00 PM hora Chile (UTC-4)
-  command = "node -e \"fetch('https://brisaconsciente.cl/api/cron/reminders', { method: 'POST', headers: { 'x-cron-secret': process.env.CRON_SECRET } }).catch(e => console.error('Cron failed:', e))\""
+  command = "node -e \"fetch('https://brisaconsciente-agenda-production.up.railway.app/api/cron/reminders', { method: 'POST', headers: { 'x-cron-secret': process.env.CRON_SECRET } }).catch(e => console.error('Cron failed:', e))\""

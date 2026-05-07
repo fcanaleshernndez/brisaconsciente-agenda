@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
         INNER JOIN package_types pt ON b.package_type_id = pt.id
         INNER JOIN booking_slots bs ON b.id = bs.booking_id
         INNER JOIN availability_slots sl ON bs.slot_id = sl.id
-        WHERE b.status = 'confirmed'
+        WHERE (b.status = 'confirmed' OR b.status = 'manually_confirmed')
           AND sl.start_time > NOW()
           AND sl.start_time <= NOW() + INTERVAL '24 hours'
           AND b.reminder_sent_at IS NULL

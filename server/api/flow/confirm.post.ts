@@ -6,6 +6,7 @@ import { bookingConfirmationTemplate } from '../../utils/email-templates/booking
 import { sendProfessionalNotificationEmail } from '../../utils/email'
 import { logError } from '../../utils/logger'
 import { createGoogleMeetMeeting } from '../../utils/googleCalendar'
+import { formatSpanishDate, formatSpanishTime } from '../../utils/date'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
   const result = await client.query(`
@@ -42,14 +43,6 @@ async function getBookingSlots(client: any, bookingId: number) {
     ORDER BY asl.start_time
   `, [bookingId])
   return result.rows
-}
-
-function formatSpanishDate(date: any) {
-  return new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date)).replace('.', '')
-}
-
-function formatSpanishTime(date: any) {
-  return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(new Date(date))
 }
 
 async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {

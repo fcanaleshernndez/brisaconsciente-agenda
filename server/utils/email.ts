@@ -183,3 +183,38 @@ export async function sendCancellationProfessionalEmail(professionalEmail: strin
     return { success: false, error }
   }
 }
+
+export async function sendReminderEmail(data: {
+  patientEmail: string
+  patientName: string
+  professionalName: string
+  date: string
+  time: string
+  meetLink?: string | null
+  sessionType: string
+  packageName: string
+}) {
+  const { appointmentReminderTemplate } = await import('./email-templates/appointment-reminder')
+
+  const html = appointmentReminderTemplate({
+    patientName: data.patientName,
+    professionalName: data.professionalName,
+    specialty: data.sessionType,
+    date: data.date,
+    time: data.time,
+    hoursUntil: 24
+  })
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: data.patientEmail,
+      subject: `Recordatorio de tu sesión - ${EMAIL_CONFIG.companyName}`,
+      html,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending reminder email:', error)
+    return { success: false, error }
+  }
+}

@@ -46,5 +46,6 @@ dist
 .vercel
 .netlify
 
-# SQL
-*.sql
+# SQL / Schema
+model.sql
+dbscheme.md

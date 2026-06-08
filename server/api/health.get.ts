@@ -49,22 +49,20 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Check Google Calendar (real API call)
+  // Check Google Calendar
   const googleStart = Date.now()
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+    const token = process.env.GOOGLE_REFRESH_TOKEN
 
-    if (!clientId || !clientSecret || !refreshToken) {
+    if (!clientId || !clientSecret || !token) {
       throw new Error('Google Calendar credentials not configured')
     }
 
-    const { google } = await import('googleapis')
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, 'http://localhost:3000')
-    oauth2Client.setCredentials({ refresh_token: refreshToken })
-    await oauth2Client.refreshAccessToken()
-    
+    const { refreshAccessToken } = await import('../utils/googleCalendar')
+    await refreshAccessToken()
+
     services.google = {
       status: 'up',
       latency_ms: Date.now() - googleStart

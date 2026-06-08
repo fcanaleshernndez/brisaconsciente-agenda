@@ -7,6 +7,27 @@ export interface AppointmentReminderData {
   date: string
   time: string
   hoursUntil: number
+  meetLink?: string | null
+}
+
+function renderMeetLink(meetLink?: string | null): string {
+  if (!meetLink) return ''
+  if (meetLink.startsWith('http')) {
+    return `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Videollamada:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <a href="${meetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4285F4 0%, #6366F1 100%); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">Unirse a la videollamada</a>
+        </td>
+      </tr>
+    `
+  }
+  return `
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Videollamada:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; color: #666;">${meetLink}</td>
+    </tr>
+  `
 }
 
 export function appointmentReminderTemplate(data: AppointmentReminderData) {
@@ -47,9 +68,10 @@ export function appointmentReminderTemplate(data: AppointmentReminderData) {
             <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${data.date}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0;"><strong>Hora:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Hora:</strong></td>
             <td style="padding: 8px 0;">${data.time}</td>
           </tr>
+          ${renderMeetLink(data.meetLink)}
         </table>
         
         <p style="margin: 0 0 10px 0; font-size: 14px;">Por favor arrive 10 minutos antes para preparar tu sesión.</p>

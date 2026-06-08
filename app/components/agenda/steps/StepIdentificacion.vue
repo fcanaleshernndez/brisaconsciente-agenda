@@ -71,6 +71,11 @@ function confirmAndContinue() {
             </div>
         </div>
 
+        <p class="text-xs text-gray-400 text-center">
+          Al continuar, aceptas nuestra
+          <NuxtLink to="/privacidad" target="_blank" class="text-teal-600 hover:underline">Política de Privacidad</NuxtLink>
+        </p>
+
         <button @click="handleNext" :disabled="!canContinue"
             class="w-full bg-softGreen hover:bg-softGreen/70 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-4 rounded-xl transition-all shadow-lg">
             Ver Profesionales →

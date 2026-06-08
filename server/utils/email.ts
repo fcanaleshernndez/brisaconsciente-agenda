@@ -202,7 +202,8 @@ export async function sendReminderEmail(data: {
     specialty: data.sessionType,
     date: data.date,
     time: data.time,
-    hoursUntil: 24
+    hoursUntil: 24,
+    meetLink: data.meetLink,
   })
 
   try {

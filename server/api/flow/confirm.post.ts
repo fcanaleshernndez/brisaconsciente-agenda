@@ -5,7 +5,7 @@ import { resend, EMAIL_CONFIG } from '../../utils/email'
 import { bookingConfirmationTemplate } from '../../utils/email-templates/booking-confirmation'
 import { sendProfessionalNotificationEmail } from '../../utils/email'
 import { logError } from '../../utils/logger'
-import { createGoogleMeetMeeting } from '../../utils/googleCalendar'
+import { createVideoConference } from '../../utils/videoConference'
 import { formatSpanishDate, formatSpanishTime } from '../../utils/date'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
@@ -106,31 +106,24 @@ async function createMeetLinksForSlots(client: any, bookingDetails: any, slots: 
     const slot = slots[i]
     
     if (!slot.meet_link) {
-      try {
-        const meeting = await createGoogleMeetMeeting({
-          summary: `Sesión ${i + 1}/${slots.length} - ${bookingDetails.professional_name} con ${bookingDetails.patient_name}`,
-          description: `${bookingDetails.specialty_name}\nReserva #${bookingId}`,
-          startTime: slot.start_time,
-          endTime: slot.end_time,
-          patientEmail: bookingDetails.patient_email,
-          patientName: bookingDetails.patient_name,
-          professionalEmail: bookingDetails.professional_email,
-          professionalName: bookingDetails.professional_name,
-        })
+      const meeting = await createVideoConference({
+        summary: `Sesión ${i + 1}/${slots.length} - ${bookingDetails.professional_name} con ${bookingDetails.patient_name}`,
+        description: `${bookingDetails.specialty_name}\nReserva #${bookingId}`,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        patientEmail: bookingDetails.patient_email,
+        patientName: bookingDetails.patient_name,
+        professionalEmail: bookingDetails.professional_email,
+        professionalName: bookingDetails.professional_name,
+      })
 
-        await client.query(`
-          UPDATE availability_slots
-          SET meet_link = $1, calendar_event_id = $2
-          WHERE id = $3
-        `, [meeting.meetLink, meeting.eventId, slot.slot_id])
+      await client.query(`
+        UPDATE availability_slots
+        SET meet_link = $1, calendar_event_id = $2
+        WHERE id = $3
+      `, [meeting.meetLink, meeting.eventId || null, slot.slot_id])
 
-        slot.meet_link = meeting.meetLink
-      } catch (meetError: any) {
-        console.error('Error creating Google Meet for slot:', meetError?.message || meetError)
-        if (meetError?.response?.data) {
-          console.error('Google API error details:', meetError.response.data)
-        }
-      }
+      slot.meet_link = meeting.meetLink
     }
   }
 }

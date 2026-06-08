@@ -26,9 +26,14 @@ export function professionalNotificationTemplate(data: ProfessionalNotificationD
       }).format(data.amount)
 
   const sessionsRows = data.sessions.map((session, index) => {
-    const meetLinkHtml = session.meetLink 
-      ? `<a href="${session.meetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4285F4 0%, #6366F1 100%); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; white-space: nowrap;">Unirse</a>`
-      : '<span style="color: #999; font-size: 12px;">Pendiente</span>'
+    let meetLinkHtml: string
+    if (!session.meetLink) {
+      meetLinkHtml = '<span style="color: #999; font-size: 12px;">Pendiente</span>'
+    } else if (session.meetLink.startsWith('http')) {
+      meetLinkHtml = `<a href="${session.meetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4285F4 0%, #6366F1 100%); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; white-space: nowrap;">Unirse</a>`
+    } else {
+      meetLinkHtml = `<span style="color: #666; font-size: 11px;">${session.meetLink}</span>`
+    }
     
     return `
     <tr>

@@ -10,6 +10,13 @@ export default defineEventHandler(async (event) => {
   const body = await verifySchema.parse(await readBody(event))
   const secretKey = process.env.RECAPTCHA_SECRET_KEY
 
+  const host = getHeader(event, 'host') || ''
+
+  // Skip reCAPTCHA on local/development environments
+  if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('ngrok')) {
+    return { success: true, score: 1, dev_bypass: true }
+  }
+
   if (!secretKey) {
     throw createError({
       statusCode: 500,

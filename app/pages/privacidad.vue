@@ -48,7 +48,7 @@ definePageMeta({
         </section>
 
         <div class="mt-8 flex items-center justify-between">
-          <NuxtLink to="/" class="text-teal-600 hover:underline text-sm">&larr; Volver a la reserva</NuxtLink>
+          <NuxtLink to="/" class="text-teal-600 hover:underline text-sm">&larr; Volver</NuxtLink>
           <p class="text-gray-500 text-sm">Brisa Consciente &mdash; Centro Terapéutico</p>
         </div>
       </div>

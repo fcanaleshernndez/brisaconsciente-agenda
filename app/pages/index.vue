@@ -10,6 +10,13 @@ const config = useRuntimeConfig()
 const siteKey = config.public.recaptchaSiteKey
 
 useHead({
+    title: 'Brisa Consciente - Agenda tu sesión de terapias online',
+    meta: [
+      { name: 'description', content: 'Reserva tus sesiones de terapias online con Brisa Consciente. Agenda profesionales, elige horarios y paga de forma segura. Centro terapéutico de bienestar.' },
+      { property: 'og:title', content: 'Brisa Consciente - Agenda tu sesión' },
+      { property: 'og:description', content: 'Reserva tus sesiones de terapias online. Elige profesional, horario y paga de forma segura.' },
+      { property: 'og:type', content: 'website' },
+    ],
     script: [
         {
             src: 'https://www.google.com/recaptcha/api.js?render=' + siteKey,

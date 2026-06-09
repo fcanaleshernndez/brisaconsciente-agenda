@@ -18,7 +18,7 @@ Es la **página principal** después de iniciar sesión.
 - Cantidad de reservas del mes
 - Ingresos del mes
 - Próximas citas
-- Estado de los servicios (DB, Flow, Google)
+- Estado de los servicios (DB, Flow)
 
 **Botón "Estado del sistema":** Verifica que todo funcione correctamente. Si algo está en rojo, contacta al desarrollador.
 
@@ -40,6 +40,21 @@ Aquí ves **todas las reservas** del sistema.
 | confirmed             | Pagado y confirmado            |
 | manually_confirmed    | Creado manualmente por admin   |
 | cancelled             | Cancelada                      |
+
+**Código de reserva:**
+Cada reserva tiene un **código único** (ej: `BC-7F3K2A`) que se le muestra al paciente:
+- En la página de resultado del pago
+- En el comprobante PDF descargable
+- En todos los emails (confirmación, recordatorio, cancelación, reagendamiento)
+
+Este código reemplaza los IDs numéricos internos para proteger la privacidad.
+
+**Buscar reserva por código:**
+Debajo del "Total del mes actual" hay un buscador donde puedes ingresar el código de una reserva y obtener al instante:
+- Paciente y profesional asociados
+- Estado de la reserva
+- Monto y sesiones
+- Si está pagado o no
 
 **Acciones:**
 - **Ver paciente:** Click en la fila para ver detalles
@@ -173,19 +188,17 @@ Registros de **errores técnicos** del sistema.
 
 ---
 
-## 🎥 Videollamadas (Google Meet)
+## 🎥 Videollamadas (Jitsi)
 
-El sistema crea **automáticamente** un link de Google Meet para cada sesión.
+El sistema genera un **link de videollamada Jitsi** único para cada sesión.
 
 **Cómo funciona:**
 1. Al confirmar el pago (o crear reserva manual)
-2. El sistema crea el evento en Google Calendar
-3. Se genera el link de Meet
-4. El link aparece en los emails de confirmación
+2. El sistema genera un ID único de sala Jitsi
+3. El link aparece en los emails de confirmación y recordatorio
+4. No requiere autenticación ni configuración extra
 
-**El paciente y profesional reciben** el link en sus emails.
-
-**Nota:** Necesita que el token OAuth de Google esté vigente. Si falla, la reserva se crea igual pero sin Meet.
+**El paciente y profesional reciben** el link en sus emails. No necesitan cuenta ni instalación — funciona directo desde el navegador.
 
 ---
 
@@ -223,11 +236,11 @@ El horario está reservado pero pendiente de pago. Si no se completa el pago en 
 **¿Por qué no aparece un profesional en la lista?**
 Verifica que esté activo y que tenga al menos un precio configurado en la sección de Precios.
 
-**¿Qué hago si el link de Meet no se creó?**
-Revisa el estado de Google en "Estado del sistema". Si está caído, contacta al desarrollador.
+**¿Qué hago si no funciona el link de videollamada?**
+Los links Jitsi se generan automáticamente y no dependen de servicios externos. Si hay problemas, copia el link manualmente al navegador.
 
 **¿Puedo crear una reserva sin que el paciente pague?**
-Sí, desde el admin puedes crear una reserva manualmente y marcarla como pagada.
+Sí, desde el admin puedes crear una reserva manualmente y marcarla como pagada. El sistema generará el código de reserva y los links de videollamada igualmente.
 
 **¿Cómo cancelo una reserva?**
 Ve a Reservas → Click en la reserva → Busca la opción de cancelar. Esto liberará los horarios y enviará un email de notificación.
@@ -262,4 +275,4 @@ Si algo no funciona:
 ---
 
 *Versión del sistema: 1.0*
-*Última actualización: Abril 2026*
+*Última actualización: Junio 2026*

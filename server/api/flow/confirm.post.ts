@@ -7,6 +7,7 @@ import { sendProfessionalNotificationEmail } from '../../utils/email'
 import { logError } from '../../utils/logger'
 import { createVideoConference } from '../../utils/videoConference'
 import { formatSpanishDate, formatSpanishTime } from '../../utils/date'
+import { encryptId } from '../../utils/id-hash'
 
 async function getBookingEmailDetails(client: any, bookingId: number) {
   const result = await client.query(`
@@ -55,6 +56,8 @@ async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {
     meetLink: slot.meet_link
   }))
   
+  const bookingCode = `BC-${encryptId(bookingDetails.booking_id)}`
+
   const html = bookingConfirmationTemplate({
     patientName: bookingDetails.patient_name,
     professionalName: bookingDetails.professional_name,
@@ -62,6 +65,7 @@ async function sendConfirmationEmail(bookingDetails: any, slots: any[]) {
     sessions: sessions,
     amount: bookingDetails.total_amount_clp,
     bookingId: bookingDetails.booking_id,
+    bookingCode,
   })
 
   try {
@@ -106,9 +110,9 @@ async function createMeetLinksForSlots(client: any, bookingDetails: any, slots: 
     const slot = slots[i]
     
     if (!slot.meet_link) {
-      const meeting = await createVideoConference({
+      const meeting: any = await createVideoConference({
         summary: `Sesión ${i + 1}/${slots.length} - ${bookingDetails.professional_name} con ${bookingDetails.patient_name}`,
-        description: `${bookingDetails.specialty_name}\nReserva #${bookingId}`,
+        description: `${bookingDetails.specialty_name}`,
         startTime: slot.start_time,
         endTime: slot.end_time,
         patientEmail: bookingDetails.patient_email,

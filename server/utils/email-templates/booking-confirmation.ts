@@ -14,6 +14,7 @@ export interface BookingConfirmationData {
   sessions: Session[]
   amount: number | string
   bookingId: number
+  bookingCode: string
 }
 
 export function bookingConfirmationTemplate(data: BookingConfirmationData) {
@@ -74,6 +75,10 @@ export function bookingConfirmationTemplate(data: BookingConfirmationData) {
           <tr>
             <td style="padding: 8px 0;"><strong>Monto:</strong></td>
             <td style="padding: 8px 0;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Código:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-family: monospace; color: #A8D5BA;">${data.bookingCode}</td>
           </tr>
         </table>
 

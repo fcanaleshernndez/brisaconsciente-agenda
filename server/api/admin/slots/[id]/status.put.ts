@@ -1,7 +1,6 @@
 import { query } from "../../../../utils/db";
 import { sendRescheduleNotificationEmail, sendRescheduleProfessionalEmail, sendCancellationPatientEmail, sendCancellationProfessionalEmail } from "../../../../utils/email";
 import { logError } from "../../../../utils/logger";
-import { deleteVideoConference } from "../../../../utils/videoConference";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -53,9 +52,6 @@ export default defineEventHandler(async (event) => {
       }
 
       const slot = slotRes.rows[0]
-
-      // Delete Google Calendar event if exists
-      await deleteVideoConference(slot.calendar_event_id)
 
       await query(`UPDATE availability_slots SET status = 'rescheduled' WHERE id = $1`, [id])
 
@@ -140,9 +136,6 @@ export default defineEventHandler(async (event) => {
       }
 
       const slot = slotRes.rows[0]
-
-      // Delete Google Calendar event if exists
-      await deleteVideoConference(slot.calendar_event_id)
 
       await query(`UPDATE availability_slots SET status = 'canceled' WHERE id = $1`, [id])
 

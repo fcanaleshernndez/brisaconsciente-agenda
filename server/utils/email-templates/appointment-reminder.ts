@@ -8,6 +8,7 @@ export interface AppointmentReminderData {
   time: string
   hoursUntil: number
   meetLink?: string | null
+  bookingCode: string
 }
 
 function renderMeetLink(meetLink?: string | null): string {
@@ -68,8 +69,12 @@ export function appointmentReminderTemplate(data: AppointmentReminderData) {
             <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${data.date}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Hora:</strong></td>
+            <td style="padding: 8px 0;"><strong>Hora:</strong></td>
             <td style="padding: 8px 0;">${data.time}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0;"><strong>Código:</strong></td>
+            <td style="padding: 8px 0; font-family: monospace; color: #A8D5BA;">${data.bookingCode}</td>
           </tr>
           ${renderMeetLink(data.meetLink)}
         </table>

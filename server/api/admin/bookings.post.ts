@@ -2,6 +2,7 @@ import { z } from "zod";
 import { sendBookingConfirmationEmail, sendProfessionalNotificationEmail } from "../../utils/email";
 import { logError } from "../../utils/logger";
 import { createVideoConference } from "../../utils/videoConference";
+import { encryptId } from "../../utils/id-hash";
 
 const manualBookingSchema = z.object({
   patient_id: z.number().int().positive("Paciente requerido"),
@@ -137,7 +138,7 @@ export default defineEventHandler(async (event) => {
         
         const meeting = await createVideoConference({
           summary: `Sesión ${i + 1}/${slotsRes.rows.length} - ${bookingInfo.professional_name} con ${bookingInfo.patient_name}`,
-          description: `${bookingInfo.specialty_name}\nReserva #${bookingId}`,
+          description: `${bookingInfo.specialty_name}`,
           startTime: slot.start_time,
           endTime: slot.end_time,
           patientEmail: bookingInfo.patient_email,
@@ -176,6 +177,8 @@ export default defineEventHandler(async (event) => {
       if (emailData.rows[0] && slotsForEmail.length > 0) {
         const data = emailData.rows[0]
 
+        const bookingCode = `BC-${encryptId(bookingId)}`
+
         sendBookingConfirmationEmail(data.patient_email, {
           patientName: data.patient_name,
           professionalName: data.professional_name,
@@ -183,6 +186,7 @@ export default defineEventHandler(async (event) => {
           sessions: slotsForEmail,
           amount: data.total_amount_clp,
           bookingId: bookingId,
+          bookingCode,
         })
 
         sendProfessionalNotificationEmail(data.professional_email, {

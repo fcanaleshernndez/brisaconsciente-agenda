@@ -28,7 +28,7 @@ definePageMeta({
           <ul class="list-disc pl-5 mt-2 text-gray-600 space-y-1">
             <li>Gestionar y confirmar reservas de sesiones</li>
             <li>Enviar recordatorios de citas vía correo electrónico</li>
-            <li>Enviar enlaces de videollamada (Google Meet o Jitsi)</li>
+            <li>Enviar enlaces de videollamada (Jitsi)</li>
             <li>Comunicar cambios o cancelaciones</li>
           </ul>
         </section>
@@ -37,7 +37,7 @@ definePageMeta({
           <h2 class="text-lg font-semibold text-gray-700 mb-2">3. Almacenamiento</h2>
           <p class="text-gray-600">Los datos se almacenan en una base de datos segura. No compartimos datos personales con terceros, excepto los servicios necesarios para el funcionamiento:</p>
           <ul class="list-disc pl-5 mt-2 text-gray-600 space-y-1">
-            <li>Google Calendar (creación de eventos de videollamada)</li>
+            <li>Jitsi Meet (generación de enlaces de videollamada)</li>
             <li>Flow (procesamiento de pagos)</li>
           </ul>
         </section>

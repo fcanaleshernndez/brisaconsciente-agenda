@@ -21,7 +21,8 @@
           <p class="text-gray-700"><strong class="text-gray-800">Profesional:</strong> {{ booking.professional_name }}</p>
           <p class="text-gray-700"><strong class="text-gray-800">Sesiones:</strong> {{ booking.session_count }}</p>
           <p class="text-gray-700"><strong class="text-gray-800">Monto:</strong> <span class="text-teal-600 font-bold">{{ formatCLP(booking.total_amount_clp) }}</span></p>
-          <p v-if="booking.payment_id" class="text-gray-700"><strong class="text-gray-800">Comprobante #:</strong> {{ booking.payment_id }}</p>
+          <p class="text-gray-700"><strong class="text-gray-800">Código de reserva:</strong> <span class="font-mono text-teal-600 font-semibold">{{ booking.public_code }}</span></p>
+          <p v-if="booking.public_payment_code" class="text-gray-700"><strong class="text-gray-800">Código de pago:</strong> <span class="font-mono text-gray-600 text-xs">{{ booking.public_payment_code }}</span></p>
         </div>
 
         <div v-if="booking.slots && booking.slots.length > 0" class="bg-softBlue/10 rounded-2xl border border-softBlue/30 p-4 text-left mb-4">
@@ -76,7 +77,6 @@ import { jsPDF } from 'jspdf'
 const route = useRoute()
 const config = useRuntimeConfig()
 const token = route.query.token || null
-const orderId = route.query.order || null
 
 const booking = ref(null)
 const pending = ref(true)
@@ -109,7 +109,7 @@ async function checkStatus() {
 
   try {
     const data = await $fetch('/api/bookings/status', {
-      params: { token, orderId }
+      params: { token }
     })
 
     console.log(`Intento ${attempts + 1}:`, data?.status)
@@ -183,8 +183,8 @@ function downloadReceipt() {
     y += 7
   }
 
-  addField('ID Reserva', `#${String(booking.value.id)}`)
-  addField('ID Pago', `#${String(booking.value.payment_id || 'N/A')}`)
+  addField('Codigo Reserva', String(booking.value.public_code || booking.value.id))
+  addField('Codigo Pago', String(booking.value.public_payment_code || booking.value.payment_id || 'N/A'))
   addField('Profesional', booking.value.professional_name)
   addField('Paquete', booking.value.package_name || 'N/A')
   addField('Sesiones', String(booking.value.session_count))
@@ -250,14 +250,14 @@ function downloadReceipt() {
   y += 5
   doc.text(EMAIL_CONFIG.companyName + ' - www.brisaconsciente.cl', pageWidth / 2, y, { align: 'center' })
 
-  doc.save(`comprobante-reserva-${booking.value.id}.pdf`)
+  doc.save(`comprobante-${booking.value.public_code || booking.value.id}.pdf`)
 }
 
 onMounted(() => {
-  if (token || orderId) {
+  if (token) {
     checkStatus()
   } else {
-    console.warn('Sin token ni orderId en URL')
+    console.warn('Sin token en URL')
     pending.value = false
   }
 })

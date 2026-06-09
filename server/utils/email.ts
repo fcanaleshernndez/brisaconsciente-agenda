@@ -22,6 +22,7 @@ export async function sendBookingConfirmationEmail(patientEmail: string, data: {
   sessions: Session[]
   amount: number
   bookingId: number
+  bookingCode: string
 }) {
   const { bookingConfirmationTemplate } = await import('./email-templates/booking-confirmation')
   
@@ -193,6 +194,7 @@ export async function sendReminderEmail(data: {
   meetLink?: string | null
   sessionType: string
   packageName: string
+  bookingCode: string
 }) {
   const { appointmentReminderTemplate } = await import('./email-templates/appointment-reminder')
 
@@ -204,6 +206,7 @@ export async function sendReminderEmail(data: {
     time: data.time,
     hoursUntil: 24,
     meetLink: data.meetLink,
+    bookingCode: data.bookingCode,
   })
 
   try {

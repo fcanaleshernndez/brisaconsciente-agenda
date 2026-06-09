@@ -1,11 +1,12 @@
 import { query } from '../../utils/db'
 import { logError } from '../../utils/logger'
+import { encryptId } from '../../utils/id-hash'
 
 export default defineEventHandler(async (event) => {
-    const { token, orderId } = getQuery(event)
+    const { token, orderId, code } = getQuery(event)
 
-    if (!token && !orderId) {
-        throw createError({ statusCode: 400, message: 'Se requiere token u orderId' })
+    if (!token && !orderId && !code) {
+        throw createError({ statusCode: 400, message: 'Se requiere token, orderId o code' })
     }
 
     const sql = `
@@ -31,18 +32,30 @@ export default defineEventHandler(async (event) => {
         ($1::text IS NOT NULL AND pay.flow_token = $1)
         OR
         ($2::integer IS NOT NULL AND b.id = $2::integer)
+        OR
+        ($3::integer IS NOT NULL AND b.id = $3::integer)
         LIMIT 1
     `
 
     try {
+        let bookingId: number | null = orderId ? parseInt(String(orderId), 10) || null : null
+        if (!bookingId && code) {
+            const { decryptId } = await import('../../utils/id-hash')
+            bookingId = decryptId(String(code))
+        }
+
         const { rows } = await query(sql, [
             token || null,
-            orderId || null
+            bookingId,
+            bookingId
         ])
         if (rows.length === 0) return null
         
         const booking = rows[0]
         
+        booking.public_code = booking.id ? `BC-${encryptId(booking.id)}` : null
+        booking.public_payment_code = booking.payment_id ? `BC-${encryptId(booking.payment_id)}` : null
+
         const slotsSql = `
             SELECT 
                 start_time,

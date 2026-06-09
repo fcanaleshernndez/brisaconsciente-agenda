@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { useDb } from '../utils/db'
 import { BookingsRepo } from '../repos/bookings'
 import { flowCreatePayment } from '#imports'
-import { logError } from '../utils/logger' 
+import { logError } from '../utils/logger'
+import { encryptId } from '../utils/id-hash'
 
 const bookingSchema = z.object({
   name: z.string().min(3),
@@ -61,14 +62,15 @@ export default defineEventHandler(async (event) => {
     })
 
     // 4. Llamar a Flow (producción)
-    const order = `BC-${bookingId}`
+    const publicCode = encryptId(bookingId)
+    const order = `BC-${publicCode}`
     const { url, token } = await flowCreatePayment({
       subject: `Brisa Consciente - Reserva ${order}`,
       amount: total_amount_clp,
       commerceOrder: order,
       email,
       urlConfirmation: process.env.FLOW_URL_CONFIRM!,
-      urlReturn: process.env.FLOW_URL_RETURN+`?order=${bookingId}`,
+      urlReturn: process.env.FLOW_URL_RETURN,
     })
 
     // 5. Guardar datos de pago en tabla payments

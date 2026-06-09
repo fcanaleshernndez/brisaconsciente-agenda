@@ -6,7 +6,7 @@ export interface BookingCancelledData {
   specialty: string
   date: string
   time: string
-  bookingId: number
+  bookingCode: string
   reason?: string
 }
 
@@ -48,8 +48,8 @@ export function bookingCancelledTemplate(data: BookingCancelledData) {
             <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${data.time}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Reserva #:</strong></td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${data.bookingId}</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Código:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${data.bookingCode}</td>
           </tr>
           ${data.reason ? `<tr><td style="padding: 8px 0;"><strong>Motivo:</strong></td><td style="padding: 8px 0;">${data.reason}</td></tr>` : ''}
         </table>

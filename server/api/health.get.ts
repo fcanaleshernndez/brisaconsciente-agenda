@@ -49,33 +49,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Check Google Calendar
-  const googleStart = Date.now()
-  try {
-    const clientId = process.env.GOOGLE_CLIENT_ID
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const token = process.env.GOOGLE_REFRESH_TOKEN
-
-    if (!clientId || !clientSecret || !token) {
-      throw new Error('Google Calendar credentials not configured')
-    }
-
-    const { refreshAccessToken } = await import('../utils/googleCalendar')
-    await refreshAccessToken()
-
-    services.google = {
-      status: 'up',
-      latency_ms: Date.now() - googleStart
-    }
-  } catch (error: any) {
-    healthy = false
-    services.google = {
-      status: 'down',
-      error: error.message,
-      latency_ms: Date.now() - googleStart
-    }
-  }
-
   return {
     status: healthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),

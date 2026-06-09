@@ -8,7 +8,7 @@ export interface BookingRescheduledData {
   oldTime: string
   newDate: string
   newTime: string
-  bookingId: number
+  bookingCode: string
 }
 
 export function bookingRescheduledTemplate(data: BookingRescheduledData) {
@@ -49,8 +49,8 @@ export function bookingRescheduledTemplate(data: BookingRescheduledData) {
             <td style="padding: 8px 0; border-bottom: 1px solid #eee; color: #60c3e7; font-weight: bold;">${data.newDate} - ${data.newTime}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0;"><strong>Reserva #:</strong></td>
-            <td style="padding: 8px 0;">${data.bookingId}</td>
+            <td style="padding: 8px 0;"><strong>Código:</strong></td>
+            <td style="padding: 8px 0;">${data.bookingCode}</td>
           </tr>
         </table>
         

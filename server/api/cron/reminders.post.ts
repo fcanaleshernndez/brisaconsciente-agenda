@@ -1,6 +1,7 @@
 import { Pool } from 'pg'
 import { formatSpanishDate, formatSpanishTime } from '../../../server/utils/date'
 import { sendReminderEmail } from '../../../server/utils/email'
+import { encryptId } from '../../../server/utils/id-hash'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -57,6 +58,8 @@ export default defineEventHandler(async (event) => {
           const date = formatSpanishDate(booking.start_time)
           const time = formatSpanishTime(booking.start_time)
           
+          const bookingCode = `BC-${encryptId(booking.booking_id)}`
+
           const emailResult = await sendReminderEmail({
             patientEmail: booking.patient_email,
             patientName: booking.patient_name,
@@ -65,7 +68,8 @@ export default defineEventHandler(async (event) => {
             time,
             meetLink: booking.meet_link,
             sessionType: booking.specialty_name,
-            packageName: booking.package_name
+            packageName: booking.package_name,
+            bookingCode,
           })
           
           if (emailResult.success) {

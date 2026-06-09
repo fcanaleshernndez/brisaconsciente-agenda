@@ -34,6 +34,31 @@ const availableSlots = ref([])
 const packages = ref([])
 const loadingSlots = ref(false)
 
+const lookupCode = ref('')
+const lookupResult = ref(null)
+const lookupLoading = ref(false)
+const lookupError = ref('')
+
+async function lookupBooking() {
+  const code = lookupCode.value.trim()
+  if (!code) return
+  lookupLoading.value = true
+  lookupResult.value = null
+  lookupError.value = ''
+  try {
+    const data = await $fetch('/api/bookings/status', { params: { code } })
+    if (!data) {
+      lookupError.value = 'No se encontró ninguna reserva con ese código'
+    } else {
+      lookupResult.value = data
+    }
+  } catch (e) {
+    lookupError.value = 'Error al buscar: ' + (e.message || e)
+  } finally {
+    lookupLoading.value = false
+  }
+}
+
 async function fetchReservations(page = 1) {
   loading.value = true
   try {
@@ -284,6 +309,35 @@ onMounted(async () => {
       >
         + Crear Reserva Manual
       </button>
+    </div>
+
+    <!-- Buscador de reservas por código -->
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+      <h3 class="text-sm font-semibold text-gray-700 mb-2">Buscar reserva por código</h3>
+      <div class="grid grid-cols-3 gap-2">
+        <input
+          v-model="lookupCode"
+          @keyup.enter="lookupBooking"
+          type="text"
+          placeholder="Ej: BC-..."
+          class="col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-300 outline-none font-mono"
+        />
+        <button
+          @click="lookupBooking"
+          :disabled="lookupLoading"
+          class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-500 transition disabled:opacity-50"
+        >
+          {{ lookupLoading ? 'Buscando...' : 'Buscar' }}
+        </button>
+      </div>
+      <div v-if="lookupError" class="mt-2 text-sm text-red-600">{{ lookupError }}</div>
+      <div v-if="lookupResult" class="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+        <p class="font-semibold text-gray-800">{{ lookupResult.patient_name }} — {{ lookupResult.professional_name }}</p>
+        <p class="text-gray-500">Estado: <span class="font-medium">{{ lookupResult.status }}</span></p>
+        <p class="text-gray-500">Código: <span class="font-mono text-teal-600">{{ lookupResult.public_code }}</span></p>
+        <p class="text-gray-500">Sesiones: {{ lookupResult.session_count }} | Total: {{ formatPrice(lookupResult.total_amount_clp) }}</p>
+        <p class="text-gray-500">Pagado: <span :class="lookupResult.paid_at ? 'text-green-600 font-medium' : 'text-red-500 font-medium'">{{ lookupResult.paid_at ? 'Sí' : 'No' }}</span></p>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-8 text-gray-500">Cargando...</div>

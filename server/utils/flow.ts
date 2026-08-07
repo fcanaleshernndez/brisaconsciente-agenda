@@ -19,6 +19,23 @@ export async function flowCreatePayment(input: {
     const FLOW_API_KEY = (process.env.FLOW_API_KEY || '').trim()
     const FLOW_SECRET_KEY = (process.env.FLOW_SECRET_KEY || '').trim()
 
+    const missing: string[] = []
+    if (!FLOW_API_KEY) missing.push('FLOW_API_KEY')
+    if (!FLOW_SECRET_KEY) missing.push('FLOW_SECRET_KEY')
+    if (!input.subject) missing.push('subject')
+    if (!input.amount) missing.push('amount')
+    if (!input.commerceOrder) missing.push('commerceOrder')
+    if (!input.email) missing.push('email')
+    if (!input.urlConfirmation) missing.push('urlConfirmation')
+    if (!input.urlReturn) missing.push('urlReturn')
+
+    if (missing.length > 0) {
+        throw createError({
+            statusCode: 400,
+            message: `Missing required Flow parameters: ${missing.join(', ')}`
+        })
+    }
+
     const params: Record<string, string> = {
         apiKey: FLOW_API_KEY,
         subject: input.subject,
@@ -29,6 +46,10 @@ export async function flowCreatePayment(input: {
         urlConfirmation: input.urlConfirmation,
         urlReturn: input.urlReturn,
     }
+
+    console.error('[flowCreatePayment] calling', `${FLOW_API_URL}/payment/create`, {
+        params: Object.fromEntries(Object.entries(params).map(([k, v]) => [k, k === 'apiKey' ? `${String(v).slice(0, 8)}...` : v]))
+    })
 
     const s = sign(params, FLOW_SECRET_KEY)
     const body = new URLSearchParams({ ...params, s }).toString().replace(/\+/g, '%20')

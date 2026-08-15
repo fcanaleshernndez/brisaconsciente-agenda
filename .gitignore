@@ -49,3 +49,6 @@ dist
 # SQL / Schema
 model.sql
 dbscheme.md
+
+# Reportes generados por cron
+reports

@@ -222,3 +222,39 @@ export async function sendReminderEmail(data: {
     return { success: false, error }
   }
 }
+
+export async function sendBookingsReportEmail(data: {
+  to: string
+  weekStart: string
+  weekEnd: string
+  count: number
+  attachment: { filename: string; content: Buffer }
+}) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+      <h2 style="color: #0D9488;">Reporte semanal de reservas</h2>
+      <p>Adjunto el reporte de reservas de la semana del <strong>${data.weekStart}</strong> al <strong>${data.weekEnd}</strong>.</p>
+      <p>Total de reservas en el período: <strong>${data.count}</strong></p>
+      <p style="color: #888; font-size: 12px;">Generado automáticamente por ${EMAIL_CONFIG.companyName}.</p>
+    </div>
+  `
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: data.to,
+      subject: `Reporte semanal de reservas (${data.weekStart} al ${data.weekEnd}) - ${EMAIL_CONFIG.companyName}`,
+      html,
+      attachments: [
+        {
+          filename: data.attachment.filename,
+          content: data.attachment.content,
+        },
+      ],
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending bookings report email:', error)
+    return { success: false, error }
+  }
+}

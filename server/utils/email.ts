@@ -228,13 +228,18 @@ export async function sendBookingsReportEmail(data: {
   weekStart: string
   weekEnd: string
   count: number
-  attachment: { filename: string; content: Buffer }
+  attachment?: { filename: string; content: Buffer }
 }) {
+  const hasData = Boolean(data.attachment)
+  const bodyHtml = hasData
+    ? `<p>Adjunto el reporte de reservas de la semana del <strong>${data.weekStart}</strong> al <strong>${data.weekEnd}</strong>.</p>
+      <p>Total de reservas en el período: <strong>${data.count}</strong></p>`
+    : `<p>No se registraron reservas para la semana del <strong>${data.weekStart}</strong> al <strong>${data.weekEnd}</strong>.</p>`
+
   const html = `
     <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
       <h2 style="color: #0D9488;">Reporte semanal de reservas</h2>
-      <p>Adjunto el reporte de reservas de la semana del <strong>${data.weekStart}</strong> al <strong>${data.weekEnd}</strong>.</p>
-      <p>Total de reservas en el período: <strong>${data.count}</strong></p>
+      ${bodyHtml}
       <p style="color: #888; font-size: 12px;">Generado automáticamente por ${EMAIL_CONFIG.companyName}.</p>
     </div>
   `
@@ -245,12 +250,16 @@ export async function sendBookingsReportEmail(data: {
       to: data.to,
       subject: `Reporte semanal de reservas (${data.weekStart} al ${data.weekEnd}) - ${EMAIL_CONFIG.companyName}`,
       html,
-      attachments: [
-        {
-          filename: data.attachment.filename,
-          content: data.attachment.content,
-        },
-      ],
+      ...(data.attachment
+        ? {
+            attachments: [
+              {
+                filename: data.attachment.filename,
+                content: data.attachment.content,
+              },
+            ],
+          }
+        : {}),
     })
     return { success: true }
   } catch (error) {

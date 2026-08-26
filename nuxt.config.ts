@@ -19,8 +19,7 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       '0 */2 * * *': ['cron:reminders'],
-      // TESTING: cada 10 minutos - volver a '0 21 * * 0' (domingos 9pm) después de probar
-      '*/10 * * * *': ['cron:bookings-report']
+      '0 21 * * 0': ['cron:bookings-report']
     }
   }
 })
